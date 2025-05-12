@@ -1,0 +1,24 @@
+# Java
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+*.ipr
+
+# Logs
+logs/
+*.log
+
+# Maven
+target/
+
+# Spring sensitive config
+src/main/resources/env.properties
+
+# Env / system files
+.DS_Store
+.env
+.vscode/
