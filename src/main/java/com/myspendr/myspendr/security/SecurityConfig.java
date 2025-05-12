@@ -40,7 +40,7 @@ public class SecurityConfig {
 
         httpSecurity.authorizeHttpRequests(authorizationManagerRequestMatcherRegistry ->
                 authorizationManagerRequestMatcherRegistry
-                        .requestMatchers("/ping", "/api/**").permitAll());
+                        .requestMatchers("/auth/**").permitAll());
 
 
         httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));
@@ -59,8 +59,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowedOrigins(List.of(
-                "http://localhost:3000",                         // per sviluppo locale
-                "https://trading-journal-beryl.vercel.app"       // produzione su Vercel
+                "http://localhost:3000",
+                "http://localhost:8080",
+                "https://trading-journal-beryl.vercel.app"
         ));
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
