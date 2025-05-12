@@ -40,7 +40,9 @@ public class SecurityConfig {
 
         httpSecurity.authorizeHttpRequests(authorizationManagerRequestMatcherRegistry ->
                 authorizationManagerRequestMatcherRegistry
-                        .requestMatchers("/auth/**").permitAll());
+                        .requestMatchers("/auth/**").permitAll()
+                        .anyRequest().authenticated()
+        );
 
 
         httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));

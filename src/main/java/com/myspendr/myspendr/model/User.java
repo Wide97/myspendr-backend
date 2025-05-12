@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -39,4 +40,11 @@ public class User {
     private String password;
 
     private LocalDate dataRegistrazione;
+
+    @Column(name = "tentativi_falliti")
+    private Integer tentativiFalliti = 0;
+
+
+    @Column(name = "bloccato_fino")
+    private LocalDateTime bloccatoFino;
 }
