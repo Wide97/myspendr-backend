@@ -6,7 +6,9 @@ import com.myspendr.myspendr.dto.RegisterRequest;
 import com.myspendr.myspendr.exceptions.EmailAlreadyExistsException;
 import com.myspendr.myspendr.exceptions.InvalidCredentialsException;
 import com.myspendr.myspendr.exceptions.UserNotFoundException;
+import com.myspendr.myspendr.model.Role;
 import com.myspendr.myspendr.model.User;
+import com.myspendr.myspendr.model.VerificationToken;
 import com.myspendr.myspendr.repositories.UserRepository;
 import com.myspendr.myspendr.security.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -26,12 +28,14 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final EmailService emailService;
+    private final VerificationTokenService verificationTokenService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils, EmailService emailService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils, EmailService emailService, VerificationTokenService verificationTokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.emailService = emailService;
+        this.verificationTokenService = verificationTokenService;
     }
 
     public void register(RegisterRequest request) {
@@ -48,12 +52,39 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .dataRegistrazione(LocalDate.now())
                 .tentativiFalliti(0)
+                .emailConfirmed(false)
+                .role(Role.USER)
                 .build();
 
-        emailService.sendWelcomeEmail(user.getEmail(), user.getNome());
         userRepository.save(user);
+
+        // 🔐 Genera token di verifica email
+        VerificationToken token = verificationTokenService.createTokenForUser(user);
+
+        // 🔗 Crea link di verifica
+        String verifyLink = "https://myspendr.com/api/auth/verify-email?token=" + token.getToken();
+
+        // 📬 Invia email personalizzata di benvenuto + verifica
+        String subject = "Conferma la tua email - MySpendr";
+        String body = """
+        Ciao %s! 👋
+
+        Grazie per esserti registrato su *MySpendr*.
+        Conferma la tua email cliccando sul link qui sotto entro 24 ore:
+
+        👉 %s
+
+        Se non hai richiesto questa registrazione, puoi ignorare questo messaggio.
+
+        A presto!  
+        — Il team di MySpendr
+        """.formatted(user.getNome(), verifyLink);
+
+        emailService.sendVerificationEmail(user.getEmail(), user.getNome(), verifyLink);
+
         log.info("Nuovo utente registrato con email: {}", user.getEmail());
     }
+
 
 
     public LoginResponse login(LoginRequest request) {

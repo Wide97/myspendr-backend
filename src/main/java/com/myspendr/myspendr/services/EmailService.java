@@ -32,4 +32,27 @@ public class EmailService {
             throw new EmailSendingException("Errore durante l'invio dell'email a " + to, e);
         }
     }
+
+    public void sendVerificationEmail(String to, String nome, String verifyLink) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("✅ Conferma la tua email - MySpendr");
+        message.setText(
+                "Ciao " + nome + ",\n\n" +
+                        "Grazie per esserti registrato su MySpendr!\n" +
+                        "Per completare la registrazione, clicca sul link qui sotto entro 24 ore:\n\n" +
+                        verifyLink + "\n\n" +
+                        "Se non hai richiesto questa registrazione, ignora questo messaggio.\n\n" +
+                        "— Il team di MySpendr"
+        );
+
+        try {
+            mailSender.send(message);
+            log.info("Email di verifica inviata a {}", to);
+        } catch (MailException e) {
+            log.error("Errore durante l'invio dell'email di verifica a {}: {}", to, e.getMessage());
+            throw new EmailSendingException("Errore durante l'invio dell'email a " + to, e);
+        }
+    }
+
 }
