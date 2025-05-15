@@ -52,7 +52,6 @@ public class User {
 
     private boolean emailConfirmed;
 
-    private Role role;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Capitale capitale;

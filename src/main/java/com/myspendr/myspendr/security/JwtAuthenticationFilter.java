@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -44,19 +43,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 User user = userRepository.findByEmail(email)
                         .orElseThrow(() -> new RuntimeException("Utente non trovato"));
 
-                List<GrantedAuthority> authorities = List.of(
-                        new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
-                );
+                List<GrantedAuthority> authorities = List.of();
+
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(email, null, authorities);
 
-                System.out.println("→ Header: " + authHeader);
-                System.out.println("→ Token valido: " + token);
-                System.out.println("→ Email estratta: " + email);
-                System.out.println("→ Ruolo utente: " + user.getRole());
-                System.out.println("→ Authority creata: ROLE_" + user.getRole());
-                System.out.println("→ Autenticazione settata: " + authentication.getName());
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);

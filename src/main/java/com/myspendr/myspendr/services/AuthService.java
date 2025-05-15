@@ -7,7 +7,6 @@ import com.myspendr.myspendr.dto.ResetPasswordRequest;
 import com.myspendr.myspendr.exceptions.EmailAlreadyExistsException;
 import com.myspendr.myspendr.exceptions.InvalidCredentialsException;
 import com.myspendr.myspendr.exceptions.UserNotFoundException;
-import com.myspendr.myspendr.model.Role;
 import com.myspendr.myspendr.model.User;
 import com.myspendr.myspendr.model.VerificationToken;
 import com.myspendr.myspendr.repositories.UserRepository;
@@ -55,7 +54,6 @@ public class AuthService {
                 .dataRegistrazione(LocalDate.now())
                 .tentativiFalliti(0)
                 .emailConfirmed(false)
-                .role(Role.USER)
                 .build();
 
         userRepository.save(user);
