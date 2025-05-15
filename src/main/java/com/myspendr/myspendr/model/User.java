@@ -54,4 +54,7 @@ public class User {
 
     private Role role;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private Capitale capitale;
+
 }
