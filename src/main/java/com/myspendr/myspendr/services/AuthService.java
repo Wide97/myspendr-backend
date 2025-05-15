@@ -3,6 +3,7 @@ package com.myspendr.myspendr.services;
 import com.myspendr.myspendr.dto.LoginRequest;
 import com.myspendr.myspendr.dto.LoginResponse;
 import com.myspendr.myspendr.dto.RegisterRequest;
+import com.myspendr.myspendr.dto.ResetPasswordRequest;
 import com.myspendr.myspendr.exceptions.EmailAlreadyExistsException;
 import com.myspendr.myspendr.exceptions.InvalidCredentialsException;
 import com.myspendr.myspendr.exceptions.UserNotFoundException;
@@ -131,15 +132,21 @@ public class AuthService {
     }
 
     public void forgotPassword(String email) {
+        log.info("Richiesta reset password per: {}", email);
+
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Email non trovata"));
+                .orElseThrow(() -> {
+                    log.warn("❌ Nessun utente trovato con email: {}", email);
+                    return new UserNotFoundException("Email non trovata");
+                });
 
         String tempPassword = generateSecurePassword();
+
         user.setPassword(passwordEncoder.encode(tempPassword));
         userRepository.save(user);
 
         emailService.sendPasswordResetEmail(user.getEmail(), user.getNome(), tempPassword);
-        log.info("Password temporanea inviata a {}", user.getEmail());
+        log.info("✅ Password temporanea inviata a {}", user.getEmail());
     }
 
     private String generateSecurePassword() {
@@ -152,6 +159,23 @@ public class AuthService {
         return sb.toString();
     }
 
+    public void resetPassword(String authHeader, ResetPasswordRequest request) {
+        String token = authHeader.replace("Bearer ", "").trim();
+        String userEmail = jwtUtils.getUsernameFromJwtToken(token);
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UserNotFoundException("Utente non trovato"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            log.warn("❌ Password attuale errata per utente {}", userEmail);
+            throw new InvalidCredentialsException("Password attuale non corretta");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        log.info("✅ Password aggiornata per {}", userEmail);
+    }
 
 
 

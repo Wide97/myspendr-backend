@@ -1,9 +1,6 @@
 package com.myspendr.myspendr.controllers;
 
-import com.myspendr.myspendr.dto.ForgotPasswordRequest;
-import com.myspendr.myspendr.dto.LoginRequest;
-import com.myspendr.myspendr.dto.LoginResponse;
-import com.myspendr.myspendr.dto.RegisterRequest;
+import com.myspendr.myspendr.dto.*;
 import com.myspendr.myspendr.services.AuthService;
 import com.myspendr.myspendr.services.VerificationTokenService;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +45,16 @@ public class AuthController {
         authService.forgotPassword(request.getEmail());
         return ResponseEntity.ok("✅ Nuova password inviata via email");
     }
+
+    @PutMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestBody com.myspendr.myspendr.dto.ResetPasswordRequest request,
+            @RequestHeader("Authorization") String token) {
+
+        authService.resetPassword(token, request);
+        return ResponseEntity.ok("✅ Password aggiornata con successo");
+    }
+
 
 
 }
