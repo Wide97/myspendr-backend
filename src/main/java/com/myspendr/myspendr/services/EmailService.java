@@ -55,4 +55,27 @@ public class EmailService {
         }
     }
 
+    public void sendPasswordResetEmail(String to, String nome, String newPassword) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("🔐 Recupero password - MySpendr");
+        message.setText(
+                "Ciao " + nome + ",\n\n" +
+                        "Hai richiesto il recupero della password.\n" +
+                        "La tua nuova password temporanea è:\n\n" +
+                        newPassword + "\n\n" +
+                        "Ti consigliamo di cambiarla appena possibile.\n\n" +
+                        "— Il team di MySpendr"
+        );
+
+        try {
+            mailSender.send(message);
+            log.info("Email di recupero inviata a {}", to);
+        } catch (MailException e) {
+            log.error("Errore durante invio email recupero a {}: {}", to, e.getMessage());
+            throw new EmailSendingException("Errore durante l'invio dell'email a " + to, e);
+        }
+    }
+
+
 }

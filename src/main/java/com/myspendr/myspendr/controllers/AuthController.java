@@ -1,5 +1,6 @@
 package com.myspendr.myspendr.controllers;
 
+import com.myspendr.myspendr.dto.ForgotPasswordRequest;
 import com.myspendr.myspendr.dto.LoginRequest;
 import com.myspendr.myspendr.dto.LoginResponse;
 import com.myspendr.myspendr.dto.RegisterRequest;
@@ -41,5 +42,12 @@ public class AuthController {
             return ResponseEntity.badRequest().body("❌ Token non valido o scaduto.");
         }
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok("✅ Nuova password inviata via email");
+    }
+
 
 }
