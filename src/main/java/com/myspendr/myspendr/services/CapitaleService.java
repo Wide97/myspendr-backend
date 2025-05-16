@@ -12,6 +12,9 @@ import com.myspendr.myspendr.security.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
 @Slf4j
 @Service
 public class CapitaleService {
@@ -40,11 +43,16 @@ public class CapitaleService {
     public CapitaleResponse createCapitale(String authHeader, CapitaleRequest req) {
         User user = getUserFromToken(authHeader);
 
+        if (capitaleRepository.findByUserId(user.getId()).isPresent()) {
+            throw new IllegalStateException("Il capitale è già stato creato per questo utente.");
+        }
+
         Capitale capitale = new Capitale();
         capitale.setContoBancario(req.getContoBancario());
         capitale.setLiquidita(req.getLiquidita());
         capitale.setAltriFondi(req.getAltriFondi());
         capitale.setUser(user);
+        capitale.setDataAggiornamento(LocalDate.now());
 
         Capitale saved = capitaleRepository.save(capitale);
         log.info("Creato nuovo capitale per utente {}: {}", user.getEmail(), saved);
@@ -62,6 +70,7 @@ public class CapitaleService {
         cap.setContoBancario(req.getContoBancario());
         cap.setLiquidita(req.getLiquidita());
         cap.setAltriFondi(req.getAltriFondi());
+        cap.setDataAggiornamento(LocalDate.now());
 
         Capitale updated = capitaleRepository.save(cap);
         log.info("Capitale aggiornato per utente {}: {}", user.getEmail(), updated);
@@ -83,5 +92,17 @@ public class CapitaleService {
         User user = getUserFromToken(authHeader);
         log.info("Eliminazione capitale per utente {}", user.getEmail());
         capitaleRepository.deleteByUserId(user.getId());
+    }
+
+    public CapitaleResponse resetCapitale(String authHeader) {
+        User user = getUserFromToken(authHeader);
+        Capitale cap = capitaleRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
+        cap.setContoBancario(BigDecimal.ZERO);
+        cap.setLiquidita(BigDecimal.ZERO);
+        cap.setAltriFondi(BigDecimal.ZERO);
+        cap.setDataAggiornamento(LocalDate.now());
+        Capitale reset = capitaleRepository.save(cap);
+        return new CapitaleResponse(reset);
     }
 }

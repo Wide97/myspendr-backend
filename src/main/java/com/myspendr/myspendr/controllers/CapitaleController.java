@@ -38,4 +38,9 @@ public class CapitaleController {
         capitaleService.deleteCapitale(token);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/reset")
+    public ResponseEntity<CapitaleResponse> reset(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(capitaleService.resetCapitale(token));
+    }
 }
