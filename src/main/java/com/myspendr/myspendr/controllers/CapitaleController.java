@@ -43,4 +43,10 @@ public class CapitaleController {
     public ResponseEntity<CapitaleResponse> reset(@RequestHeader("Authorization") String token) {
         return ResponseEntity.ok(capitaleService.resetCapitale(token));
     }
+
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("✅ MySpendr backend is alive!");
+    }
+
 }

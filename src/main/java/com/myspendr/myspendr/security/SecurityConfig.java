@@ -62,8 +62,7 @@ public class SecurityConfig {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
-                "http://localhost:8080",
-                "https://trading-journal-beryl.vercel.app"
+                "http://localhost:8081"
         ));
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
