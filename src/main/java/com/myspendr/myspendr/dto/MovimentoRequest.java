@@ -16,5 +16,6 @@ public class MovimentoRequest {
     private String descrizione;
     private CategoriaMovimento categoria;
     private LocalDate data;
+    private String fonte;
 
 }

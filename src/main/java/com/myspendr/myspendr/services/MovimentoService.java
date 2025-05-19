@@ -49,25 +49,45 @@ public class MovimentoService {
 
     public MovimentoResponse creaMovimento(String authHeader, MovimentoRequest request) {
         Capitale capitale = getCapitaleFromToken(authHeader);
+        BigDecimal importo = request.getImporto();
+
+        String fonte = request.getFonte();
+        if (fonte == null) {
+            throw new IllegalArgumentException("Fonte obbligatoria per il movimento");
+        }
 
         Movimento movimento = Movimento.builder()
-                .importo(request.getImporto())
+                .importo(importo)
                 .tipo(request.getTipo())
                 .categoria(request.getCategoria())
                 .descrizione(request.getDescrizione())
                 .data(request.getData())
+                .fonte(fonte.toUpperCase()) // salva in maiuscolo per coerenza
                 .capitale(capitale)
                 .build();
 
-        BigDecimal importo = request.getImporto();
         switch (request.getTipo()) {
-            case ENTRATA -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
-            case USCITA -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
+            case ENTRATA -> {
+                switch (fonte.toUpperCase()) {
+                    case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().add(importo));
+                    case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
+                    case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().add(importo));
+                    default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                }
+            }
+            case USCITA -> {
+                switch (fonte.toUpperCase()) {
+                    case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().subtract(importo));
+                    case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
+                    case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().subtract(importo));
+                    default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                }
+            }
         }
 
         capitaleRepository.save(capitale);
         Movimento saved = movimentoRepository.save(movimento);
-        log.info("Movimento {} salvato per capitale {}", saved.getTipo(), capitale.getId());
+        log.info("Movimento {} [{}] salvato per capitale {}", saved.getTipo(), saved.getFonte(), capitale.getId());
 
         return new MovimentoResponse(saved);
     }

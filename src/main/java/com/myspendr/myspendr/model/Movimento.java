@@ -31,6 +31,8 @@ public class Movimento {
 
     private LocalDate data;
 
+    private String fonte;
+
     @ManyToOne
     @JoinColumn(name = "capitale_id")
     private Capitale capitale;
