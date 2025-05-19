@@ -103,6 +103,14 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
+        <!-- Telegram Bot Java SDK -->
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-spring-boot-starter</artifactId>
+            <version>6.5.0</version> <!-- Usa l’ultima compatibile -->
+        </dependency>
+
+
 
 
     </dependencies>
