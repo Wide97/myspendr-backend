@@ -53,6 +53,7 @@ public class MovimentoService {
         Movimento movimento = Movimento.builder()
                 .importo(request.getImporto())
                 .tipo(request.getTipo())
+                .categoria(request.getCategoria())
                 .descrizione(request.getDescrizione())
                 .data(request.getData())
                 .capitale(capitale)

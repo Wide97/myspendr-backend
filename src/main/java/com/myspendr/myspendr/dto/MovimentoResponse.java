@@ -1,5 +1,6 @@
 package com.myspendr.myspendr.dto;
 
+import com.myspendr.myspendr.model.CategoriaMovimento;
 import com.myspendr.myspendr.model.Movimento;
 import com.myspendr.myspendr.model.TipoMovimento;
 import lombok.Getter;
@@ -16,6 +17,7 @@ public class MovimentoResponse {
     private TipoMovimento tipo;
     private String descrizione;
     private LocalDate data;
+    private CategoriaMovimento categoria;
 
     public MovimentoResponse(Movimento movimento) {
         this.id = movimento.getId();
@@ -23,5 +25,6 @@ public class MovimentoResponse {
         this.tipo = movimento.getTipo();
         this.descrizione = movimento.getDescrizione();
         this.data = movimento.getData();
+        this.categoria = movimento.getCategoria();
     }
 }

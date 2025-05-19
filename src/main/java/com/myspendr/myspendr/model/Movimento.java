@@ -24,6 +24,9 @@ public class Movimento {
     @Enumerated(EnumType.STRING)
     private TipoMovimento tipo;
 
+    @Enumerated(EnumType.STRING)
+    private CategoriaMovimento categoria;
+
     private String descrizione;
 
     private LocalDate data;
