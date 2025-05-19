@@ -67,24 +67,23 @@ public class AuthService {
         // 📬 Invia email personalizzata di benvenuto + verifica
         String subject = "Conferma la tua email - MySpendr";
         String body = """
-        Ciao %s! 👋
-
-        Grazie per esserti registrato su *MySpendr*.
-        Conferma la tua email cliccando sul link qui sotto entro 24 ore:
-
-        👉 %s
-
-        Se non hai richiesto questa registrazione, puoi ignorare questo messaggio.
-
-        A presto!  
-        — Il team di MySpendr
-        """.formatted(user.getNome(), verifyLink);
+                Ciao %s! 👋
+                
+                Grazie per esserti registrato su *MySpendr*.
+                Conferma la tua email cliccando sul link qui sotto entro 24 ore:
+                
+                👉 %s
+                
+                Se non hai richiesto questa registrazione, puoi ignorare questo messaggio.
+                
+                A presto!  
+                — Il team di MySpendr
+                """.formatted(user.getNome(), verifyLink);
 
         emailService.sendVerificationEmail(user.getEmail(), user.getNome(), verifyLink);
 
         log.info("Nuovo utente registrato con email: {}", user.getEmail());
     }
-
 
 
     public LoginResponse login(LoginRequest request) {
@@ -126,7 +125,7 @@ public class AuthService {
 
         String token = jwtUtils.generateJwtToken(user.getEmail());
         log.info("Login riuscito per utente {}", user.getEmail());
-        return new LoginResponse(token);
+        return new LoginResponse(token, user.getUsername());
     }
 
     public void forgotPassword(String email) {
@@ -174,7 +173,6 @@ public class AuthService {
 
         log.info("✅ Password aggiornata per {}", userEmail);
     }
-
 
 
 }
