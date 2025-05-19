@@ -61,7 +61,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
+                "http://localhost:5173",
                 "http://localhost:8081",
                 "https://myspendr.duckdns.org"
         ));
