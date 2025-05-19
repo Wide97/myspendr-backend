@@ -62,7 +62,7 @@ public class MovimentoService {
                 .categoria(request.getCategoria())
                 .descrizione(request.getDescrizione())
                 .data(request.getData())
-                .fonte(fonte.toUpperCase()) // salva in maiuscolo per coerenza
+                .fonte(fonte.toUpperCase())
                 .capitale(capitale)
                 .build();
 

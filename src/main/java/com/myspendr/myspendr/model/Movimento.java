@@ -22,9 +22,11 @@ public class Movimento {
     private BigDecimal importo;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "tipo")
     private TipoMovimento tipo;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "categoria")
     private CategoriaMovimento categoria;
 
     private String descrizione;
