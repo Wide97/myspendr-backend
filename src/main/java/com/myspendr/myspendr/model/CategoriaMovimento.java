@@ -5,5 +5,13 @@ public enum CategoriaMovimento {
     TRASPORTI,
     AFFITTO,
     SHOPPING,
+    SIGARETTE,
+    STIPENDIO,
+    TORNEI,
+    SERATE,
+    DIVERTIMENTO,
+    BEAUTY,
+    SALUTE,
+    INVESTIMENTI,
     ALTRO
 }
