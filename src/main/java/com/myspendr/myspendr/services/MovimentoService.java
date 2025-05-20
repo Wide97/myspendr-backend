@@ -104,16 +104,32 @@ public class MovimentoService {
 
         Capitale capitale = movimento.getCapitale();
         BigDecimal importo = movimento.getImporto();
+        String fonte = movimento.getFonte().toUpperCase();
 
         switch (movimento.getTipo()) {
-            case ENTRATA -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
-            case USCITA -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
+            case ENTRATA -> {
+                switch (fonte) {
+                    case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().subtract(importo));
+                    case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
+                    case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().subtract(importo));
+                    default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                }
+            }
+            case USCITA -> {
+                switch (fonte) {
+                    case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().add(importo));
+                    case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
+                    case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().add(importo));
+                    default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                }
+            }
         }
 
         capitaleRepository.save(capitale);
         movimentoRepository.deleteById(id);
-        log.info("Movimento eliminato e capitale ripristinato (ID: {})", id);
+        log.info("Movimento eliminato e capitale aggiornato (ID: {})", id);
     }
+
 
     // 📅 Filtro per intervallo di date
     public List<MovimentoResponse> getMovimentiByDateRange(String authHeader, LocalDate start, LocalDate end) {
