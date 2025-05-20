@@ -1,10 +1,10 @@
 package com.myspendr.myspendr.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
-
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,6 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({"capitale"})
 public class User {
 
     @Id

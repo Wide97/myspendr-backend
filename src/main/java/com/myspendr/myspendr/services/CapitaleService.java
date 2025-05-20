@@ -9,6 +9,7 @@ import com.myspendr.myspendr.model.User;
 import com.myspendr.myspendr.repositories.CapitaleRepository;
 import com.myspendr.myspendr.repositories.UserRepository;
 import com.myspendr.myspendr.security.JwtUtils;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -88,11 +89,13 @@ public class CapitaleService {
         return new CapitaleResponse(cap);
     }
 
+    @Transactional
     public void deleteCapitale(String authHeader) {
         User user = getUserFromToken(authHeader);
         log.info("Eliminazione capitale per utente {}", user.getEmail());
         capitaleRepository.deleteByUserId(user.getId());
     }
+
 
     public CapitaleResponse resetCapitale(String authHeader) {
         User user = getUserFromToken(authHeader);
