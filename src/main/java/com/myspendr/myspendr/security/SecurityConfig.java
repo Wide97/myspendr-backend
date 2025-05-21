@@ -60,12 +60,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "https://myspendr.duckdns.org",
+        corsConfiguration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "https://*.duckdns.org",
                 "https://my-spendr.vercel.app"
         ));
-
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
