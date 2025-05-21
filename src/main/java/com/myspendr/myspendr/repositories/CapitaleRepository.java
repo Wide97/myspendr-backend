@@ -14,27 +14,5 @@ public interface CapitaleRepository extends JpaRepository<Capitale, Long> {
     Optional<Capitale> findByUserId(UUID userId);
     void deleteByUserId(UUID userId);
 
-
-    @Query("SELECT NEW com.myspendr.myspendr.dto.ReportCapitaleDTO(" +
-            "FUNCTION('to_char', c.data, 'YYYY-MM'), " +
-            "SUM(c.valore), " +
-            "SUM(c.variazione)) " +
-            "FROM Capitale c WHERE c.user.id = :userId " +
-            "GROUP BY FUNCTION('to_char', c.data, 'YYYY-MM') " +
-            "ORDER BY FUNCTION('to_char', c.data, 'YYYY-MM')")
-    List<ReportCapitaleDTO> getReportMensileByUserId(@Param("userId") UUID userId);
-
-    @Query("SELECT NEW com.myspendr.myspendr.dto.ReportCapitaleDTO(" +
-            "FUNCTION('to_char', c.data, 'YYYY'), " +
-            "SUM(c.valore), " +
-            "SUM(c.variazione)) " +
-            "FROM Capitale c WHERE c.user.id = :userId " +
-            "GROUP BY FUNCTION('to_char', c.data, 'YYYY') " +
-            "ORDER BY FUNCTION('to_char', c.data, 'YYYY')")
-    List<ReportCapitaleDTO> getReportAnnualeByUserId(@Param("userId") UUID userId);
-
-
-
-
 }
 

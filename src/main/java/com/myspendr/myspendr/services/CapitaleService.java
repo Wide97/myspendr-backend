@@ -16,7 +16,10 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -113,13 +116,57 @@ public class CapitaleService {
 
     public List<ReportCapitaleDTO> getReportMensile(String authHeader) {
         User user = getUserFromToken(authHeader);
-        return capitaleRepository.getReportMensileByUserId(user.getId());
+
+        List<Capitale> capitali = capitaleRepository.findAll().stream()
+                .filter(c -> c.getUser().getId().equals(user.getId()))
+                .toList();
+
+        Map<String, List<Capitale>> raggruppatiPerMese = capitali.stream()
+                .collect(Collectors.groupingBy(
+                        c -> c.getDataAggiornamento().format(DateTimeFormatter.ofPattern("yyyy-MM"))
+                ));
+
+        List<ReportCapitaleDTO> report = raggruppatiPerMese.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    String periodo = entry.getKey();
+                    BigDecimal sommaTotale = entry.getValue().stream()
+                            .map(Capitale::getTotale)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return new ReportCapitaleDTO(periodo, sommaTotale, BigDecimal.ZERO); // variazione = 0 per ora
+                })
+                .toList();
+
+        return report;
     }
 
+
     public List<ReportCapitaleDTO> getReportAnnuale(String authHeader) {
-            User user = getUserFromToken(authHeader);
-        return capitaleRepository.getReportAnnualeByUserId(user.getId());
+        User user = getUserFromToken(authHeader);
+
+        List<Capitale> capitali = capitaleRepository.findAll().stream()
+                .filter(c -> c.getUser().getId().equals(user.getId()))
+                .toList();
+
+        Map<String, List<Capitale>> raggruppatiPerAnno = capitali.stream()
+                .collect(Collectors.groupingBy(
+                        c -> String.valueOf(c.getDataAggiornamento().getYear())
+                ));
+
+        List<ReportCapitaleDTO> report = raggruppatiPerAnno.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    String periodo = entry.getKey();
+                    BigDecimal sommaTotale = entry.getValue().stream()
+                            .map(Capitale::getTotale)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return new ReportCapitaleDTO(periodo, sommaTotale, BigDecimal.ZERO);
+                })
+                .toList();
+
+        return report;
     }
+
 
 
 }
