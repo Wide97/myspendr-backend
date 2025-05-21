@@ -2,6 +2,7 @@ package com.myspendr.myspendr.services;
 
 import com.myspendr.myspendr.dto.CapitaleRequest;
 import com.myspendr.myspendr.dto.CapitaleResponse;
+import com.myspendr.myspendr.dto.ReportCapitaleDTO;
 import com.myspendr.myspendr.exceptions.CapitaleNotFoundException;
 import com.myspendr.myspendr.exceptions.UserNotFoundException;
 import com.myspendr.myspendr.model.Capitale;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -108,4 +110,16 @@ public class CapitaleService {
         Capitale reset = capitaleRepository.save(cap);
         return new CapitaleResponse(reset);
     }
+
+    public List<ReportCapitaleDTO> getReportMensile(String authHeader) {
+        User user = getUserFromToken(authHeader);
+        return capitaleRepository.getReportMensileByUserId(user.getId());
+    }
+
+    public List<ReportCapitaleDTO> getReportAnnuale(String authHeader) {
+            User user = getUserFromToken(authHeader);
+        return capitaleRepository.getReportAnnualeByUserId(user.getId());
+    }
+
+
 }

@@ -2,9 +2,14 @@ package com.myspendr.myspendr.controllers;
 
 import com.myspendr.myspendr.dto.CapitaleRequest;
 import com.myspendr.myspendr.dto.CapitaleResponse;
+import com.myspendr.myspendr.dto.ReportCapitaleDTO;
+import com.myspendr.myspendr.model.User;
 import com.myspendr.myspendr.services.CapitaleService;
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/capitale")
@@ -48,5 +53,17 @@ public class CapitaleController {
     public ResponseEntity<String> ping() {
         return ResponseEntity.ok("✅ MySpendr backend is alive!");
     }
+
+    @GetMapping("/report/mensile")
+    public ResponseEntity<List<ReportCapitaleDTO>> getReportMensile(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(capitaleService.getReportMensile(token));
+    }
+
+    @GetMapping("/report/annuale")
+    public ResponseEntity<List<ReportCapitaleDTO>> getReportAnnuale(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(capitaleService.getReportAnnuale(token));
+    }
+
+
 
 }
