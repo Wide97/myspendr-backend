@@ -62,7 +62,7 @@ public class AuthService {
         VerificationToken token = verificationTokenService.createTokenForUser(user);
 
         // 🔗 Crea link di verifica
-        String verifyLink = "https://myspendr.com/api/auth/verify-email?token=" + token.getToken();
+        String verifyLink = "https://myspendr.duckdns.org/email-verificata?token=" + token;
 
         // 📬 Invia email personalizzata di benvenuto + verifica
         String subject = "Conferma la tua email - MySpendr";
