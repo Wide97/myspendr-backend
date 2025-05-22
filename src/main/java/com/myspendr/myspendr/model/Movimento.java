@@ -26,7 +26,7 @@ public class Movimento {
     private TipoMovimento tipo;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "categoria")
+    @Column(name = "categoria", length = 20)
     private CategoriaMovimento categoria;
 
     private String descrizione;

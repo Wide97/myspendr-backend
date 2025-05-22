@@ -45,9 +45,15 @@ public class CapitaleController {
     }
 
     @PutMapping("/reset")
-    public ResponseEntity<CapitaleResponse> reset(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<CapitaleResponse> resetCapitale(@RequestHeader("Authorization") String token) {
         return ResponseEntity.ok(capitaleService.resetCapitale(token));
     }
+
+    @PutMapping("/reset-completo")
+    public ResponseEntity<CapitaleResponse> resetCapitaleCompleto(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(capitaleService.resetCapitaleCompleto(token));
+    }
+
 
     @GetMapping("/ping")
     public ResponseEntity<String> ping() {

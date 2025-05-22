@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface MovimentoRepository extends JpaRepository<Movimento, Long> {
     List<Movimento> findByCapitaleId(Long capitaleId);
+    void deleteByCapitaleId(Long capitaleId);
 }

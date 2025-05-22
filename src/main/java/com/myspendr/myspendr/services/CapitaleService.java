@@ -8,6 +8,7 @@ import com.myspendr.myspendr.exceptions.UserNotFoundException;
 import com.myspendr.myspendr.model.Capitale;
 import com.myspendr.myspendr.model.User;
 import com.myspendr.myspendr.repositories.CapitaleRepository;
+import com.myspendr.myspendr.repositories.MovimentoRepository;
 import com.myspendr.myspendr.repositories.UserRepository;
 import com.myspendr.myspendr.security.JwtUtils;
 import jakarta.transaction.Transactional;
@@ -28,11 +29,13 @@ public class CapitaleService {
     private final CapitaleRepository capitaleRepository;
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
+    private final MovimentoRepository movimentoRepository;
 
-    public CapitaleService(CapitaleRepository capitaleRepository, UserRepository userRepository, JwtUtils jwtUtils) {
+    public CapitaleService(CapitaleRepository capitaleRepository, UserRepository userRepository, JwtUtils jwtUtils, MovimentoRepository movimentoRepository) {
         this.capitaleRepository = capitaleRepository;
         this.userRepository = userRepository;
         this.jwtUtils = jwtUtils;
+        this.movimentoRepository = movimentoRepository;
     }
 
     private User getUserFromToken(String authHeader) {
@@ -102,6 +105,22 @@ public class CapitaleService {
     }
 
 
+    public CapitaleResponse resetCapitaleCompleto(String authHeader) {
+        User user = getUserFromToken(authHeader);
+        Capitale cap = capitaleRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
+
+        movimentoRepository.deleteByCapitaleId(cap.getId());
+
+        cap.setContoBancario(BigDecimal.ZERO);
+        cap.setLiquidita(BigDecimal.ZERO);
+        cap.setAltriFondi(BigDecimal.ZERO);
+        cap.setDataAggiornamento(LocalDate.now());
+
+        Capitale reset = capitaleRepository.save(cap);
+        return new CapitaleResponse(reset);
+    }
+
     public CapitaleResponse resetCapitale(String authHeader) {
         User user = getUserFromToken(authHeader);
         Capitale cap = capitaleRepository.findByUserId(user.getId())
@@ -113,6 +132,8 @@ public class CapitaleService {
         Capitale reset = capitaleRepository.save(cap);
         return new CapitaleResponse(reset);
     }
+
+
 
     public List<ReportCapitaleDTO> getReportMensile(String authHeader) {
         User user = getUserFromToken(authHeader);

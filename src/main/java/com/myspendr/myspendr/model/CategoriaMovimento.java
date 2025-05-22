@@ -15,3 +15,4 @@ public enum CategoriaMovimento {
     INVESTIMENTI,
     ALTRO
 }
+

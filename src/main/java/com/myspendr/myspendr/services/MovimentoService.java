@@ -48,10 +48,25 @@ public class MovimentoService {
     }
 
     public MovimentoResponse creaMovimento(String authHeader, MovimentoRequest request) {
-        Capitale capitale = getCapitaleFromToken(authHeader);
-        BigDecimal importo = request.getImporto();
+        String email = jwtUtils.getUsernameFromJwtToken(authHeader.replace("Bearer ", "").trim());
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Utente non trovato"));
 
+        // Se non c’è capitale, lo creo con importi a zero
+        Capitale capitale = capitaleRepository.findByUserId(user.getId())
+                .orElseGet(() -> {
+                    Capitale nuovo = new Capitale();
+                    nuovo.setUser(user);
+                    nuovo.setContoBancario(BigDecimal.ZERO);
+                    nuovo.setLiquidita(BigDecimal.ZERO);
+                    nuovo.setAltriFondi(BigDecimal.ZERO);
+                    nuovo.setDataAggiornamento(LocalDate.now());
+                    return capitaleRepository.save(nuovo);
+                });
+
+        BigDecimal importo = request.getImporto();
         String fonte = request.getFonte();
+
         if (fonte == null) {
             throw new IllegalArgumentException("Fonte obbligatoria per il movimento");
         }
