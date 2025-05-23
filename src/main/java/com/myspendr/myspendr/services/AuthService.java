@@ -87,64 +87,71 @@ public class AuthService {
 
 
     public LoginResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> {
-                    log.warn("Tentativo di login fallito: utente {} non trovato", request.getEmail());
-                    return new RuntimeException("Utente non trovato");
-                });
+        try {
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> {
+                        log.warn("❌ Tentativo login: utente {} non trovato", request.getEmail());
+                        return new RuntimeException("Utente non trovato");
+                    });
 
-        // Check blocco
-        if (user.getBloccatoFino() != null && LocalDateTime.now().isBefore(user.getBloccatoFino())) {
-            long minutiRestanti = Duration.between(LocalDateTime.now(), user.getBloccatoFino()).toMinutes();
-            log.warn("Login bloccato per {}: ancora {} minuti", user.getEmail(), minutiRestanti);
-            throw new RuntimeException("Account bloccato. Riprova tra " + minutiRestanti + " minuti.");
-        }
-
-        // Password errata
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            int nuoviTentativi = user.getTentativiFalliti() + 1;
-            user.setTentativiFalliti(nuoviTentativi);
-
-            if (nuoviTentativi >= 5) {
-                user.setBloccatoFino(LocalDateTime.now().plusMinutes(10));
-                user.setTentativiFalliti(0);
-                userRepository.save(user);
-                log.warn("Blocco account per utente {} dopo 5 tentativi falliti", user.getEmail());
-                throw new RuntimeException("Hai superato i tentativi. Account bloccato per 10 minuti.");
+            if (user.getBloccatoFino() != null && LocalDateTime.now().isBefore(user.getBloccatoFino())) {
+                long minutiRestanti = Duration.between(LocalDateTime.now(), user.getBloccatoFino()).toMinutes();
+                log.warn("⏳ Login bloccato per {}: ancora {} minuti", user.getEmail(), minutiRestanti);
+                throw new RuntimeException("Account bloccato. Riprova tra " + minutiRestanti + " minuti.");
             }
 
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                int nuoviTentativi = user.getTentativiFalliti() + 1;
+                user.setTentativiFalliti(nuoviTentativi);
+
+                if (nuoviTentativi >= 5) {
+                    user.setBloccatoFino(LocalDateTime.now().plusMinutes(10));
+                    user.setTentativiFalliti(0);
+                    userRepository.save(user);
+                    log.warn("🚫 Account bloccato per {} dopo 5 tentativi falliti", user.getEmail());
+                    throw new RuntimeException("Hai superato i tentativi. Account bloccato per 10 minuti.");
+                }
+
+                userRepository.save(user);
+                log.warn("❌ Login fallito per {} - Tentativi rimasti: {}", user.getEmail(), 5 - nuoviTentativi);
+                throw new RuntimeException("Password errata. Tentativi rimasti: " + (5 - nuoviTentativi));
+            }
+
+            user.setTentativiFalliti(0);
+            user.setBloccatoFino(null);
             userRepository.save(user);
-            log.warn("Tentativo di login fallito per {} - Tentativi rimasti: {}", user.getEmail(), (5 - nuoviTentativi));
-            throw new RuntimeException("Password errata. Tentativi rimasti: " + (5 - nuoviTentativi));
+
+            String token = jwtUtils.generateJwtToken(user.getEmail());
+            log.info("✅ Login riuscito per {}", user.getEmail());
+            return new LoginResponse(token, user.getUsername());
+        } catch (Exception e) {
+            log.error("❌ Errore durante login per {}", request.getEmail(), e);
+            throw new RuntimeException("Errore durante il login", e);
         }
-
-        // Login corretto
-        user.setTentativiFalliti(0);
-        user.setBloccatoFino(null);
-        userRepository.save(user);
-
-        String token = jwtUtils.generateJwtToken(user.getEmail());
-        log.info("Login riuscito per utente {}", user.getEmail());
-        return new LoginResponse(token, user.getUsername());
     }
 
     public void forgotPassword(String email) {
-        log.info("Richiesta reset password per: {}", email);
+        try {
+            log.info("🔐 Richiesta reset password per: {}", email);
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.warn("❌ Nessun utente trovato con email: {}", email);
-                    return new UserNotFoundException("Email non trovata");
-                });
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> {
+                        log.warn("❌ Nessun utente trovato con email: {}", email);
+                        return new UserNotFoundException("Email non trovata");
+                    });
 
-        String tempPassword = generateSecurePassword();
+            String tempPassword = generateSecurePassword();
+            user.setPassword(passwordEncoder.encode(tempPassword));
+            userRepository.save(user);
 
-        user.setPassword(passwordEncoder.encode(tempPassword));
-        userRepository.save(user);
-
-        emailService.sendPasswordResetEmail(user.getEmail(), user.getNome(), tempPassword);
-        log.info("✅ Password temporanea inviata a {}", user.getEmail());
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getNome(), tempPassword);
+            log.info("✅ Password temporanea inviata a {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("❌ Errore durante reset password per {}", email, e);
+            throw new RuntimeException("Errore durante il reset della password", e);
+        }
     }
+
 
     private String generateSecurePassword() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*";
@@ -157,21 +164,26 @@ public class AuthService {
     }
 
     public void resetPassword(String authHeader, ResetPasswordRequest request) {
-        String token = authHeader.replace("Bearer ", "").trim();
-        String userEmail = jwtUtils.getUsernameFromJwtToken(token);
+        try {
+            String token = authHeader.replace("Bearer ", "").trim();
+            String userEmail = jwtUtils.getUsernameFromJwtToken(token);
 
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UserNotFoundException("Utente non trovato"));
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new UserNotFoundException("Utente non trovato"));
 
-        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            log.warn("❌ Password attuale errata per utente {}", userEmail);
-            throw new InvalidCredentialsException("Password attuale non corretta");
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                log.warn("❌ Password attuale errata per utente {}", userEmail);
+                throw new InvalidCredentialsException("Password attuale non corretta");
+            }
+
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            log.info("✅ Password aggiornata per {}", userEmail);
+        } catch (Exception e) {
+            log.error("❌ Errore durante il cambio password", e);
+            throw new RuntimeException("Errore durante il cambio password", e);
         }
-
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-
-        log.info("✅ Password aggiornata per {}", userEmail);
     }
 
 

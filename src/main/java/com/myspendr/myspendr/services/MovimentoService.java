@@ -48,128 +48,180 @@ public class MovimentoService {
     }
 
     public MovimentoResponse creaMovimento(String authHeader, MovimentoRequest request) {
-        String email = jwtUtils.getUsernameFromJwtToken(authHeader.replace("Bearer ", "").trim());
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Utente non trovato"));
+        try {
+            String email = jwtUtils.getUsernameFromJwtToken(authHeader.replace("Bearer ", "").trim());
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new UserNotFoundException("Utente non trovato"));
 
-        // Se non c’è capitale, lo creo con importi a zero
-        Capitale capitale = capitaleRepository.findByUserId(user.getId())
-                .orElseGet(() -> {
-                    Capitale nuovo = new Capitale();
-                    nuovo.setUser(user);
-                    nuovo.setContoBancario(BigDecimal.ZERO);
-                    nuovo.setLiquidita(BigDecimal.ZERO);
-                    nuovo.setAltriFondi(BigDecimal.ZERO);
-                    nuovo.setDataAggiornamento(LocalDate.now());
-                    return capitaleRepository.save(nuovo);
-                });
+            Capitale capitale = capitaleRepository.findByUserId(user.getId())
+                    .orElseGet(() -> {
+                        Capitale nuovo = new Capitale();
+                        nuovo.setUser(user);
+                        nuovo.setContoBancario(BigDecimal.ZERO);
+                        nuovo.setLiquidita(BigDecimal.ZERO);
+                        nuovo.setAltriFondi(BigDecimal.ZERO);
+                        nuovo.setDataAggiornamento(LocalDate.now());
+                        return capitaleRepository.save(nuovo);
+                    });
 
-        BigDecimal importo = request.getImporto();
-        String fonte = request.getFonte();
+            log.info("▶️ Creazione movimento: categoria={}, tipo={}, fonte={}, importo={}, data={}, descrizione={}",
+                    request.getCategoria(), request.getTipo(), request.getFonte(),
+                    request.getImporto(), request.getData(), request.getDescrizione());
 
-        if (fonte == null) {
-            throw new IllegalArgumentException("Fonte obbligatoria per il movimento");
-        }
+            BigDecimal importo = request.getImporto();
+            String fonte = request.getFonte();
+            log.info("🔐 Recupero capitale per utente {}", email);
 
-        Movimento movimento = Movimento.builder()
-                .importo(importo)
-                .tipo(request.getTipo())
-                .categoria(request.getCategoria())
-                .descrizione(request.getDescrizione())
-                .data(request.getData())
-                .fonte(fonte.toUpperCase())
-                .capitale(capitale)
-                .build();
-
-        switch (request.getTipo()) {
-            case ENTRATA -> {
-                switch (fonte.toUpperCase()) {
-                    case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().add(importo));
-                    case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
-                    case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().add(importo));
-                    default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
-                }
+            if (fonte == null) {
+                throw new IllegalArgumentException("Fonte obbligatoria per il movimento");
             }
-            case USCITA -> {
-                switch (fonte.toUpperCase()) {
-                    case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().subtract(importo));
-                    case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
-                    case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().subtract(importo));
-                    default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+
+            Movimento movimento = Movimento.builder()
+                    .importo(importo)
+                    .tipo(request.getTipo())
+                    .categoria(request.getCategoria())
+                    .descrizione(request.getDescrizione())
+                    .data(request.getData())
+                    .fonte(fonte.toUpperCase())
+                    .capitale(capitale)
+                    .build();
+
+            switch (request.getTipo()) {
+                case ENTRATA -> {
+                    switch (fonte.toUpperCase()) {
+                        case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().add(importo));
+                        case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
+                        case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().add(importo));
+                        default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                    }
                 }
+                case USCITA -> {
+                    switch (fonte.toUpperCase()) {
+                        case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().subtract(importo));
+                        case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
+                        case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().subtract(importo));
+                        default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                    }
+                }
+                default -> throw new IllegalArgumentException("Tipo di movimento non valido: " + request.getTipo());
             }
+
+            capitaleRepository.save(capitale);
+            Movimento saved = movimentoRepository.save(movimento);
+            log.info("✅ Movimento {} [{}] salvato per capitale {}", saved.getTipo(), saved.getFonte(), capitale.getId());
+
+            return new MovimentoResponse(saved);
+
+        } catch (IllegalArgumentException e) {
+            log.error("❌ Errore di validazione nel movimento: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("💥 Errore imprevisto nella creazione del movimento", e);
+            throw new RuntimeException("Errore nella creazione del movimento", e);
         }
-
-        capitaleRepository.save(capitale);
-        Movimento saved = movimentoRepository.save(movimento);
-        log.info("Movimento {} [{}] salvato per capitale {}", saved.getTipo(), saved.getFonte(), capitale.getId());
-
-        return new MovimentoResponse(saved);
     }
 
+
     public List<MovimentoResponse> getMovimentiByUser(String authHeader) {
-        Capitale capitale = getCapitaleFromToken(authHeader);
-        return movimentoRepository.findByCapitaleId(capitale.getId())
-                .stream().map(MovimentoResponse::new).collect(Collectors.toList());
+        try {
+            Capitale capitale = getCapitaleFromToken(authHeader);
+            log.info("🔎 Recupero movimenti per capitale ID={}", capitale.getId());
+
+            return movimentoRepository.findByCapitaleId(capitale.getId()).stream()
+                    .map(MovimentoResponse::new)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("❌ Errore nel recupero dei movimenti", e);
+            throw new RuntimeException("Errore nel recupero dei movimenti", e);
+        }
     }
 
     public void eliminaMovimento(Long id) {
-        Movimento movimento = movimentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Movimento non trovato con ID: " + id));
+        try {
+            Movimento movimento = movimentoRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Movimento non trovato con ID: " + id));
 
-        Capitale capitale = movimento.getCapitale();
-        BigDecimal importo = movimento.getImporto();
-        String fonte = movimento.getFonte().toUpperCase();
+            Capitale capitale = movimento.getCapitale();
+            BigDecimal importo = movimento.getImporto();
+            String fonte = movimento.getFonte().toUpperCase();
 
-        switch (movimento.getTipo()) {
-            case ENTRATA -> {
-                switch (fonte) {
-                    case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().subtract(importo));
-                    case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
-                    case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().subtract(importo));
-                    default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+            log.info("🗑 Eliminazione movimento ID={} - Tipo: {}, Fonte: {}, Importo: {}", id, movimento.getTipo(), fonte, importo);
+
+            switch (movimento.getTipo()) {
+                case ENTRATA -> {
+                    switch (fonte) {
+                        case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().subtract(importo));
+                        case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
+                        case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().subtract(importo));
+                        default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                    }
+                }
+                case USCITA -> {
+                    switch (fonte) {
+                        case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().add(importo));
+                        case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
+                        case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().add(importo));
+                        default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                    }
                 }
             }
-            case USCITA -> {
-                switch (fonte) {
-                    case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().add(importo));
-                    case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
-                    case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().add(importo));
-                    default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
-                }
-            }
+
+            capitaleRepository.save(capitale);
+            movimentoRepository.deleteById(id);
+            log.info("✅ Movimento eliminato e capitale aggiornato (ID: {})", id);
+        } catch (Exception e) {
+            log.error("❌ Errore durante l'eliminazione del movimento ID={}", id, e);
+            throw new RuntimeException("Errore durante l'eliminazione del movimento", e);
         }
-
-        capitaleRepository.save(capitale);
-        movimentoRepository.deleteById(id);
-        log.info("Movimento eliminato e capitale aggiornato (ID: {})", id);
     }
 
 
-    // 📅 Filtro per intervallo di date
     public List<MovimentoResponse> getMovimentiByDateRange(String authHeader, LocalDate start, LocalDate end) {
-        Capitale capitale = getCapitaleFromToken(authHeader);
-        return movimentoRepository.findByCapitaleId(capitale.getId()).stream()
-                .filter(m -> !m.getData().isBefore(start) && !m.getData().isAfter(end))
-                .map(MovimentoResponse::new)
-                .collect(Collectors.toList());
+        try {
+            Capitale capitale = getCapitaleFromToken(authHeader);
+            log.info("📅 Filtro movimenti tra {} e {} per capitale ID={}", start, end, capitale.getId());
+
+            return movimentoRepository.findByCapitaleId(capitale.getId()).stream()
+                    .filter(m -> !m.getData().isBefore(start) && !m.getData().isAfter(end))
+                    .map(MovimentoResponse::new)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("❌ Errore nel filtro per intervallo date", e);
+            throw new RuntimeException("Errore nel recupero dei movimenti per intervallo", e);
+        }
     }
 
-    // 📊 Totale entrate
+
     public BigDecimal getTotaleEntrate(String authHeader) {
-        Capitale capitale = getCapitaleFromToken(authHeader);
-        return movimentoRepository.findByCapitaleId(capitale.getId()).stream()
-                .filter(m -> m.getTipo() == TipoMovimento.ENTRATA)
-                .map(Movimento::getImporto)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        try {
+            Capitale capitale = getCapitaleFromToken(authHeader);
+            BigDecimal totale = movimentoRepository.findByCapitaleId(capitale.getId()).stream()
+                    .filter(m -> m.getTipo() == TipoMovimento.ENTRATA)
+                    .map(Movimento::getImporto)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            log.info("📊 Totale ENTRATE per capitale {}: {}€", capitale.getId(), totale);
+            return totale;
+        } catch (Exception e) {
+            log.error("❌ Errore nel calcolo totale entrate", e);
+            throw new RuntimeException("Errore nel calcolo delle entrate", e);
+        }
     }
 
-    // 📉 Totale uscite
     public BigDecimal getTotaleUscite(String authHeader) {
-        Capitale capitale = getCapitaleFromToken(authHeader);
-        return movimentoRepository.findByCapitaleId(capitale.getId()).stream()
-                .filter(m -> m.getTipo() == TipoMovimento.USCITA)
-                .map(Movimento::getImporto)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        try {
+            Capitale capitale = getCapitaleFromToken(authHeader);
+            BigDecimal totale = movimentoRepository.findByCapitaleId(capitale.getId()).stream()
+                    .filter(m -> m.getTipo() == TipoMovimento.USCITA)
+                    .map(Movimento::getImporto)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            log.info("📉 Totale USCITE per capitale {}: {}€", capitale.getId(), totale);
+            return totale;
+        } catch (Exception e) {
+            log.error("❌ Errore nel calcolo totale uscite", e);
+            throw new RuntimeException("Errore nel calcolo delle uscite", e);
+        }
     }
+
 }

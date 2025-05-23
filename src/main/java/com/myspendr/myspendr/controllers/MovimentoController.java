@@ -3,6 +3,7 @@ package com.myspendr.myspendr.controllers;
 import com.myspendr.myspendr.dto.MovimentoRequest;
 import com.myspendr.myspendr.dto.MovimentoResponse;
 import com.myspendr.myspendr.services.MovimentoService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/movimenti")
 public class MovimentoController {
@@ -23,42 +25,83 @@ public class MovimentoController {
 
     // ➕ Crea un nuovo movimento
     @PostMapping
-    public ResponseEntity<MovimentoResponse> creaMovimento(@RequestBody MovimentoRequest request,
-                                                           @RequestHeader("Authorization") String token) {
-        return ResponseEntity.ok(movimentoService.creaMovimento(token, request));
+    public ResponseEntity<?> creaMovimento(@RequestBody MovimentoRequest request,
+                                           @RequestHeader("Authorization") String token) {
+        try {
+            MovimentoResponse response = movimentoService.creaMovimento(token, request);
+            log.info("✅ Movimento creato con successo: {}", response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("❌ Errore nella creazione del movimento", e);
+            return ResponseEntity.internalServerError().body("Errore nella creazione del movimento");
+        }
     }
 
     // 📥 Ritorna tutti i movimenti dell'utente
     @GetMapping
-    public ResponseEntity<List<MovimentoResponse>> getMovimenti(@RequestHeader("Authorization") String token) {
-        return ResponseEntity.ok(movimentoService.getMovimentiByUser(token));
+    public ResponseEntity<?> getMovimenti(@RequestHeader("Authorization") String token) {
+        try {
+            List<MovimentoResponse> lista = movimentoService.getMovimentiByUser(token);
+            log.info("📦 Recuperati {} movimenti", lista.size());
+            return ResponseEntity.ok(lista);
+        } catch (Exception e) {
+            log.error("❌ Errore nel recupero dei movimenti", e);
+            return ResponseEntity.internalServerError().body("Errore nel recupero dei movimenti");
+        }
     }
 
     // 🗓️ Ritorna movimenti per intervallo di date
     @GetMapping("/range")
-    public ResponseEntity<List<MovimentoResponse>> getMovimentiByRange(
+    public ResponseEntity<?> getMovimentiByRange(
             @RequestHeader("Authorization") String token,
             @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        return ResponseEntity.ok(movimentoService.getMovimentiByDateRange(token, start, end));
+        try {
+            List<MovimentoResponse> lista = movimentoService.getMovimentiByDateRange(token, start, end);
+            log.info("📆 Recuperati {} movimenti tra {} e {}", lista.size(), start, end);
+            return ResponseEntity.ok(lista);
+        } catch (Exception e) {
+            log.error("❌ Errore nel recupero movimenti per intervallo", e);
+            return ResponseEntity.internalServerError().body("Errore nel filtro per data");
+        }
     }
 
     // 📊 Totale ENTRATE
     @GetMapping("/totale/entrate")
-    public ResponseEntity<BigDecimal> getTotaleEntrate(@RequestHeader("Authorization") String token) {
-        return ResponseEntity.ok(movimentoService.getTotaleEntrate(token));
+    public ResponseEntity<?> getTotaleEntrate(@RequestHeader("Authorization") String token) {
+        try {
+            BigDecimal totale = movimentoService.getTotaleEntrate(token);
+            log.info("💰 Totale entrate: {}€", totale);
+            return ResponseEntity.ok(totale);
+        } catch (Exception e) {
+            log.error("❌ Errore nel calcolo totale entrate", e);
+            return ResponseEntity.internalServerError().body("Errore nel calcolo delle entrate");
+        }
     }
 
     // 📉 Totale USCITE
     @GetMapping("/totale/uscite")
-    public ResponseEntity<BigDecimal> getTotaleUscite(@RequestHeader("Authorization") String token) {
-        return ResponseEntity.ok(movimentoService.getTotaleUscite(token));
+    public ResponseEntity<?> getTotaleUscite(@RequestHeader("Authorization") String token) {
+        try {
+            BigDecimal totale = movimentoService.getTotaleUscite(token);
+            log.info("💸 Totale uscite: {}€", totale);
+            return ResponseEntity.ok(totale);
+        } catch (Exception e) {
+            log.error("❌ Errore nel calcolo totale uscite", e);
+            return ResponseEntity.internalServerError().body("Errore nel calcolo delle uscite");
+        }
     }
 
     // ❌ Elimina un movimento per ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminaMovimento(@PathVariable Long id) {
-        movimentoService.eliminaMovimento(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> eliminaMovimento(@PathVariable Long id) {
+        try {
+            movimentoService.eliminaMovimento(id);
+            log.info("🗑 Movimento eliminato con ID {}", id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            log.error("❌ Errore durante l'eliminazione del movimento con ID {}", id, e);
+            return ResponseEntity.internalServerError().body("Errore durante l'eliminazione del movimento");
+        }
     }
 }

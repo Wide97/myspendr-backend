@@ -50,144 +50,188 @@ public class CapitaleService {
     }
 
     public CapitaleResponse createCapitale(String authHeader, CapitaleRequest req) {
-        User user = getUserFromToken(authHeader);
+        try {
+            User user = getUserFromToken(authHeader);
 
-        if (capitaleRepository.findByUserId(user.getId()).isPresent()) {
-            throw new IllegalStateException("Il capitale è già stato creato per questo utente.");
+            if (capitaleRepository.findByUserId(user.getId()).isPresent()) {
+                throw new IllegalStateException("Il capitale è già stato creato per questo utente.");
+            }
+
+            Capitale capitale = new Capitale();
+            capitale.setContoBancario(req.getContoBancario());
+            capitale.setLiquidita(req.getLiquidita());
+            capitale.setAltriFondi(req.getAltriFondi());
+            capitale.setUser(user);
+            capitale.setDataAggiornamento(LocalDate.now());
+
+            Capitale saved = capitaleRepository.save(capitale);
+            log.info("✅ Creato nuovo capitale per utente {}: {}", user.getEmail(), saved);
+            return new CapitaleResponse(saved);
+        } catch (Exception e) {
+            log.error("❌ Errore durante la creazione del capitale", e);
+            throw new RuntimeException("Errore nella creazione del capitale", e);
         }
-
-        Capitale capitale = new Capitale();
-        capitale.setContoBancario(req.getContoBancario());
-        capitale.setLiquidita(req.getLiquidita());
-        capitale.setAltriFondi(req.getAltriFondi());
-        capitale.setUser(user);
-        capitale.setDataAggiornamento(LocalDate.now());
-
-        Capitale saved = capitaleRepository.save(capitale);
-        log.info("Creato nuovo capitale per utente {}: {}", user.getEmail(), saved);
-        return new CapitaleResponse(saved);
     }
+
 
     public CapitaleResponse updateCapitale(String authHeader, CapitaleRequest req) {
-        User user = getUserFromToken(authHeader);
-        Capitale cap = capitaleRepository.findByUserId(user.getId())
-                .orElseThrow(() -> {
-                    log.warn("Capitale non trovato per utente {}", user.getEmail());
-                    return new CapitaleNotFoundException("Capitale non trovato");
-                });
+        try {
+            User user = getUserFromToken(authHeader);
+            Capitale cap = capitaleRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
 
-        cap.setContoBancario(req.getContoBancario());
-        cap.setLiquidita(req.getLiquidita());
-        cap.setAltriFondi(req.getAltriFondi());
-        cap.setDataAggiornamento(LocalDate.now());
+            cap.setContoBancario(req.getContoBancario());
+            cap.setLiquidita(req.getLiquidita());
+            cap.setAltriFondi(req.getAltriFondi());
+            cap.setDataAggiornamento(LocalDate.now());
 
-        Capitale updated = capitaleRepository.save(cap);
-        log.info("Capitale aggiornato per utente {}: {}", user.getEmail(), updated);
-        return new CapitaleResponse(updated);
+            Capitale updated = capitaleRepository.save(cap);
+            log.info("🔄 Capitale aggiornato per utente {}: {}", user.getEmail(), updated);
+            return new CapitaleResponse(updated);
+        } catch (Exception e) {
+            log.error("❌ Errore nell'aggiornamento del capitale", e);
+            throw new RuntimeException("Errore nell'aggiornamento", e);
+        }
     }
+
 
     public CapitaleResponse getCapitale(String authHeader) {
-        User user = getUserFromToken(authHeader);
-        Capitale cap = capitaleRepository.findByUserId(user.getId())
-                .orElseThrow(() -> {
-                    log.warn("Capitale non trovato per utente {}", user.getEmail());
-                    return new CapitaleNotFoundException("Capitale non trovato");
-                });
-        log.info("Recuperato capitale per utente {}: {}", user.getEmail(), cap);
-        return new CapitaleResponse(cap);
+        try {
+            User user = getUserFromToken(authHeader);
+            Capitale cap = capitaleRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
+            log.info("📥 Recuperato capitale per utente {}: {}", user.getEmail(), cap);
+            return new CapitaleResponse(cap);
+        } catch (Exception e) {
+            log.error("❌ Errore nel recupero del capitale", e);
+            throw new RuntimeException("Errore nel recupero del capitale", e);
+        }
     }
+
 
     @Transactional
     public void deleteCapitale(String authHeader) {
-        User user = getUserFromToken(authHeader);
-        log.info("Eliminazione capitale per utente {}", user.getEmail());
-        capitaleRepository.deleteByUserId(user.getId());
+        try {
+            User user = getUserFromToken(authHeader);
+            log.info("🗑 Eliminazione capitale per utente {}", user.getEmail());
+            capitaleRepository.deleteByUserId(user.getId());
+        } catch (Exception e) {
+            log.error("❌ Errore durante l'eliminazione del capitale", e);
+            throw new RuntimeException("Errore nella cancellazione", e);
+        }
     }
 
 
     public CapitaleResponse resetCapitaleCompleto(String authHeader) {
-        User user = getUserFromToken(authHeader);
-        Capitale cap = capitaleRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
+        try {
+            User user = getUserFromToken(authHeader);
+            Capitale cap = capitaleRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
 
-        movimentoRepository.deleteByCapitaleId(cap.getId());
+            movimentoRepository.deleteByCapitaleId(cap.getId());
 
-        cap.setContoBancario(BigDecimal.ZERO);
-        cap.setLiquidita(BigDecimal.ZERO);
-        cap.setAltriFondi(BigDecimal.ZERO);
-        cap.setDataAggiornamento(LocalDate.now());
+            cap.setContoBancario(BigDecimal.ZERO);
+            cap.setLiquidita(BigDecimal.ZERO);
+            cap.setAltriFondi(BigDecimal.ZERO);
+            cap.setDataAggiornamento(LocalDate.now());
 
-        Capitale reset = capitaleRepository.save(cap);
-        return new CapitaleResponse(reset);
+            Capitale reset = capitaleRepository.save(cap);
+            log.info("🧨 Reset completo effettuato per capitale {}", reset.getId());
+            return new CapitaleResponse(reset);
+        } catch (Exception e) {
+            log.error("❌ Errore nel reset completo del capitale", e);
+            throw new RuntimeException("Errore nel reset completo", e);
+        }
     }
+
 
     public CapitaleResponse resetCapitale(String authHeader) {
-        User user = getUserFromToken(authHeader);
-        Capitale cap = capitaleRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
-        cap.setContoBancario(BigDecimal.ZERO);
-        cap.setLiquidita(BigDecimal.ZERO);
-        cap.setAltriFondi(BigDecimal.ZERO);
-        cap.setDataAggiornamento(LocalDate.now());
-        Capitale reset = capitaleRepository.save(cap);
-        return new CapitaleResponse(reset);
-    }
+        try {
+            User user = getUserFromToken(authHeader);
+            Capitale cap = capitaleRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
 
+            cap.setContoBancario(BigDecimal.ZERO);
+            cap.setLiquidita(BigDecimal.ZERO);
+            cap.setAltriFondi(BigDecimal.ZERO);
+            cap.setDataAggiornamento(LocalDate.now());
+
+            Capitale reset = capitaleRepository.save(cap);
+            log.info("🔁 Reset parziale effettuato per capitale {}", reset.getId());
+            return new CapitaleResponse(reset);
+        } catch (Exception e) {
+            log.error("❌ Errore nel reset parziale del capitale", e);
+            throw new RuntimeException("Errore nel reset", e);
+        }
+    }
 
 
     public List<ReportCapitaleDTO> getReportMensile(String authHeader) {
-        User user = getUserFromToken(authHeader);
+        try {
+            User user = getUserFromToken(authHeader);
+            log.info("📊 Generazione report mensile per utente {}", user.getEmail());
 
-        List<Capitale> capitali = capitaleRepository.findAll().stream()
-                .filter(c -> c.getUser().getId().equals(user.getId()))
-                .toList();
+            List<Capitale> capitali = capitaleRepository.findAll().stream()
+                    .filter(c -> c.getUser().getId().equals(user.getId()))
+                    .toList();
 
-        Map<String, List<Capitale>> raggruppatiPerMese = capitali.stream()
-                .collect(Collectors.groupingBy(
-                        c -> c.getDataAggiornamento().format(DateTimeFormatter.ofPattern("yyyy-MM"))
-                ));
+            Map<String, List<Capitale>> raggruppatiPerMese = capitali.stream()
+                    .collect(Collectors.groupingBy(
+                            c -> c.getDataAggiornamento().format(DateTimeFormatter.ofPattern("yyyy-MM"))
+                    ));
 
-        List<ReportCapitaleDTO> report = raggruppatiPerMese.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry -> {
-                    String periodo = entry.getKey();
-                    BigDecimal sommaTotale = entry.getValue().stream()
-                            .map(Capitale::getTotale)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-                    return new ReportCapitaleDTO(periodo, sommaTotale, BigDecimal.ZERO); // variazione = 0 per ora
-                })
-                .toList();
+            List<ReportCapitaleDTO> report = raggruppatiPerMese.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(entry -> {
+                        String periodo = entry.getKey();
+                        BigDecimal sommaTotale = entry.getValue().stream()
+                                .map(Capitale::getTotale)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                        return new ReportCapitaleDTO(periodo, sommaTotale, BigDecimal.ZERO);
+                    })
+                    .toList();
 
-        return report;
+            log.info("✅ Report mensile generato con {} periodi", report.size());
+            return report;
+        } catch (Exception e) {
+            log.error("❌ Errore durante la generazione del report mensile", e);
+            throw new RuntimeException("Errore nel report mensile", e);
+        }
     }
 
 
     public List<ReportCapitaleDTO> getReportAnnuale(String authHeader) {
-        User user = getUserFromToken(authHeader);
+        try {
+            User user = getUserFromToken(authHeader);
+            log.info("📆 Generazione report annuale per utente {}", user.getEmail());
 
-        List<Capitale> capitali = capitaleRepository.findAll().stream()
-                .filter(c -> c.getUser().getId().equals(user.getId()))
-                .toList();
+            List<Capitale> capitali = capitaleRepository.findAll().stream()
+                    .filter(c -> c.getUser().getId().equals(user.getId()))
+                    .toList();
 
-        Map<String, List<Capitale>> raggruppatiPerAnno = capitali.stream()
-                .collect(Collectors.groupingBy(
-                        c -> String.valueOf(c.getDataAggiornamento().getYear())
-                ));
+            Map<String, List<Capitale>> raggruppatiPerAnno = capitali.stream()
+                    .collect(Collectors.groupingBy(
+                            c -> String.valueOf(c.getDataAggiornamento().getYear())
+                    ));
 
-        List<ReportCapitaleDTO> report = raggruppatiPerAnno.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry -> {
-                    String periodo = entry.getKey();
-                    BigDecimal sommaTotale = entry.getValue().stream()
-                            .map(Capitale::getTotale)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-                    return new ReportCapitaleDTO(periodo, sommaTotale, BigDecimal.ZERO);
-                })
-                .toList();
+            List<ReportCapitaleDTO> report = raggruppatiPerAnno.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(entry -> {
+                        String periodo = entry.getKey();
+                        BigDecimal sommaTotale = entry.getValue().stream()
+                                .map(Capitale::getTotale)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                        return new ReportCapitaleDTO(periodo, sommaTotale, BigDecimal.ZERO);
+                    })
+                    .toList();
 
-        return report;
+            log.info("✅ Report annuale generato con {} anni", report.size());
+            return report;
+        } catch (Exception e) {
+            log.error("❌ Errore durante la generazione del report annuale", e);
+            throw new RuntimeException("Errore nel report annuale", e);
+        }
     }
-
 
 
 }

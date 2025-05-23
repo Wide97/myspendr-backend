@@ -26,10 +26,10 @@ public class EmailService {
 
         try {
             mailSender.send(message);
-            log.info("Email di benvenuto inviata a {}", to);
+            log.info("📩 Email di benvenuto inviata a {}", to);
         } catch (MailException e) {
-            log.error("Errore durante l'invio dell'email a {}: {}", to, e.getMessage());
-            throw new EmailSendingException("Errore durante l'invio dell'email a " + to, e);
+            log.error("❌ Errore invio email benvenuto a {}: {}", to, e.getMessage());
+            throw new EmailSendingException("Errore durante l'invio dell'email di benvenuto a " + to, e);
         }
     }
 
@@ -48,10 +48,10 @@ public class EmailService {
 
         try {
             mailSender.send(message);
-            log.info("Email di verifica inviata a {}", to);
+            log.info("📨 Email di verifica inviata a {}", to);
         } catch (MailException e) {
-            log.error("Errore durante l'invio dell'email di verifica a {}: {}", to, e.getMessage());
-            throw new EmailSendingException("Errore durante l'invio dell'email a " + to, e);
+            log.error("❌ Errore invio email verifica a {}: {}", to, e.getMessage());
+            throw new EmailSendingException("Errore durante l'invio dell'email di verifica a " + to, e);
         }
     }
 
@@ -70,12 +70,10 @@ public class EmailService {
 
         try {
             mailSender.send(message);
-            log.info("Email di recupero inviata a {}", to);
+            log.info("🔁 Email di recupero password inviata a {}", to);
         } catch (MailException e) {
-            log.error("Errore durante invio email recupero a {}: {}", to, e.getMessage());
-            throw new EmailSendingException("Errore durante l'invio dell'email a " + to, e);
+            log.error("❌ Errore invio email recupero a {}: {}", to, e.getMessage());
+            throw new EmailSendingException("Errore durante l'invio dell'email di recupero a " + to, e);
         }
     }
-
-
 }
