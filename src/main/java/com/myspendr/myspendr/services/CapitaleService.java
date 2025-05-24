@@ -121,7 +121,7 @@ public class CapitaleService {
         }
     }
 
-
+    @Transactional
     public CapitaleResponse resetCapitaleCompleto(String authHeader) {
         try {
             User user = getUserFromToken(authHeader);
