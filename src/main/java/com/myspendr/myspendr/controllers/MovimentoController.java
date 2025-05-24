@@ -31,9 +31,12 @@ public class MovimentoController {
             MovimentoResponse response = movimentoService.creaMovimento(token, request);
             log.info("✅ Movimento creato con successo: {}", response);
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            log.warn("⚠️ Movimento non valido: {}", ex.getMessage());
+            return ResponseEntity.badRequest().body("Dati non validi: " + ex.getMessage());
         } catch (Exception e) {
-            log.error("❌ Errore nella creazione del movimento", e);
-            return ResponseEntity.internalServerError().body("Errore nella creazione del movimento");
+            log.error("❌ Errore interno nella creazione del movimento", e);
+            return ResponseEntity.internalServerError().body("Errore interno del server");
         }
     }
 
