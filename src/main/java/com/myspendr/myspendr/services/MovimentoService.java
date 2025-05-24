@@ -195,6 +195,7 @@ public class MovimentoService {
     public BigDecimal getTotaleEntrate(String authHeader) {
         try {
             Capitale capitale = getCapitaleFromToken(authHeader);
+
             BigDecimal totale = movimentoRepository.findByCapitaleId(capitale.getId()).stream()
                     .filter(m -> m.getTipo() == TipoMovimento.ENTRATA)
                     .map(Movimento::getImporto)
@@ -202,11 +203,16 @@ public class MovimentoService {
 
             log.info("📊 Totale ENTRATE per capitale {}: {}€", capitale.getId(), totale);
             return totale;
+
+        } catch (CapitaleNotFoundException e) {
+            log.info("ℹ️ Capitale non presente: ritorno 0€ come totale entrate.");
+            return BigDecimal.ZERO;
         } catch (Exception e) {
             log.error("❌ Errore nel calcolo totale entrate", e);
             throw new RuntimeException("Errore nel calcolo delle entrate", e);
         }
     }
+
 
     public BigDecimal getTotaleUscite(String authHeader) {
         try {
