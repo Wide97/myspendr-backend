@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -98,15 +99,23 @@ public class CapitaleService {
     public CapitaleResponse getCapitale(String authHeader) {
         try {
             User user = getUserFromToken(authHeader);
-            Capitale cap = capitaleRepository.findByUserId(user.getId())
-                    .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
-            log.info("📥 Recuperato capitale per utente {}: {}", user.getEmail(), cap);
-            return new CapitaleResponse(cap);
+            Optional<Capitale> optionalCap = capitaleRepository.findByUserId(user.getId());
+
+            if (optionalCap.isPresent()) {
+                Capitale cap = optionalCap.get();
+                log.info("📥 Recuperato capitale per utente {}: {}", user.getEmail(), cap);
+                return new CapitaleResponse(cap);
+            } else {
+                log.info("📥 Nessun capitale trovato per utente {}. Restituisco capitale vuoto.", user.getEmail());
+                return CapitaleResponse.vuoto();
+            }
+
         } catch (Exception e) {
             log.error("❌ Errore nel recupero del capitale", e);
             throw new RuntimeException("Errore nel recupero del capitale", e);
         }
     }
+
 
 
     @Transactional
