@@ -78,17 +78,31 @@ public class CapitaleService {
     public CapitaleResponse updateCapitale(String authHeader, CapitaleRequest req) {
         try {
             User user = getUserFromToken(authHeader);
-            Capitale cap = capitaleRepository.findByUserId(user.getId())
-                    .orElseThrow(() -> new CapitaleNotFoundException("Capitale non trovato"));
 
+            // Cerca il capitale, oppure ne crea uno nuovo se non esiste
+            Capitale cap = capitaleRepository.findByUserId(user.getId())
+                    .orElseGet(() -> {
+                        Capitale nuovo = new Capitale();
+                        nuovo.setUser(user);
+                        nuovo.setContoBancario(BigDecimal.ZERO);
+                        nuovo.setLiquidita(BigDecimal.ZERO);
+                        nuovo.setAltriFondi(BigDecimal.ZERO);
+                        nuovo.setDataAggiornamento(LocalDate.now());
+                        return nuovo;
+                    });
+
+            // Aggiorna i valori con quelli ricevuti
             cap.setContoBancario(req.getContoBancario());
             cap.setLiquidita(req.getLiquidita());
             cap.setAltriFondi(req.getAltriFondi());
             cap.setDataAggiornamento(LocalDate.now());
 
+            // Salva (aggiorna o crea)
             Capitale updated = capitaleRepository.save(cap);
-            log.info("🔄 Capitale aggiornato per utente {}: {}", user.getEmail(), updated);
+
+            log.info("🔄 Capitale creato/aggiornato per utente {}: {}", user.getEmail(), updated);
             return new CapitaleResponse(updated);
+
         } catch (Exception e) {
             log.error("❌ Errore nell'aggiornamento del capitale", e);
             throw new RuntimeException("Errore nell'aggiornamento", e);
