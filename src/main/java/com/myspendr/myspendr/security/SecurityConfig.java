@@ -40,7 +40,7 @@ public class SecurityConfig {
 
         httpSecurity.authorizeHttpRequests(authorizationManagerRequestMatcherRegistry ->
                 authorizationManagerRequestMatcherRegistry
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/auth/**", "/telegram").permitAll()
                         .anyRequest().authenticated()
         );
 

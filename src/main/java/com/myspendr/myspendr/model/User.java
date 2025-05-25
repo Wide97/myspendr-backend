@@ -53,6 +53,8 @@ public class User {
 
     private boolean emailConfirmed;
 
+    @Column(unique = true)
+    private String telegramToken;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Capitale capitale;

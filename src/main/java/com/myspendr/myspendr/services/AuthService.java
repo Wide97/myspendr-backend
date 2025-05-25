@@ -117,13 +117,22 @@ public class AuthService {
                 throw new RuntimeException("Password errata. Tentativi rimasti: " + (5 - nuoviTentativi));
             }
 
+            // ✅ Reset tentativi falliti e sblocco
             user.setTentativiFalliti(0);
             user.setBloccatoFino(null);
+
+            // ✅ Genera telegramToken se non presente
+            if (user.getTelegramToken() == null) {
+                user.setTelegramToken(java.util.UUID.randomUUID().toString());
+            }
+
             userRepository.save(user);
 
             String token = jwtUtils.generateJwtToken(user.getEmail());
             log.info("✅ Login riuscito per {}", user.getEmail());
-            return new LoginResponse(token, user.getUsername());
+
+            return new LoginResponse(token, user.getUsername(), user.getTelegramToken());
+
         } catch (Exception e) {
             log.error("❌ Errore durante login per {}", request.getEmail(), e);
             throw new RuntimeException("Errore durante il login", e);

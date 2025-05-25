@@ -230,4 +230,36 @@ public class MovimentoService {
         }
     }
 
+    public void creaSpesaViaTelegram(User user, BigDecimal importo, String descrizione, LocalDate data) {
+        Capitale capitale = capitaleRepository.findByUserId(user.getId())
+                .orElseGet(() -> {
+                    Capitale nuovo = new Capitale();
+                    nuovo.setUser(user);
+                    nuovo.setContoBancario(BigDecimal.ZERO);
+                    nuovo.setLiquidita(BigDecimal.ZERO);
+                    nuovo.setAltriFondi(BigDecimal.ZERO);
+                    nuovo.setDataAggiornamento(LocalDate.now());
+                    return capitaleRepository.save(nuovo);
+                });
+
+        Movimento movimento = Movimento.builder()
+                .importo(importo)
+                .tipo(TipoMovimento.USCITA)
+                .categoria(null)
+                .descrizione(descrizione)
+                .data(data)
+                .fonte("CONTANTI")
+                .capitale(capitale)
+                .build();
+
+        capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
+        capitale.setDataAggiornamento(LocalDate.now());
+
+        capitaleRepository.save(capitale);
+        movimentoRepository.save(movimento);
+
+        log.info("🤖 Movimento Telegram salvato per utente {}: {}€ - {}", user.getEmail(), importo, descrizione);
+    }
+
+
 }
