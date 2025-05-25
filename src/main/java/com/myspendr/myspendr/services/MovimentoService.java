@@ -230,35 +230,62 @@ public class MovimentoService {
         }
     }
 
-    public void creaSpesaViaTelegram(User user, BigDecimal importo, String descrizione, LocalDate data) {
-        Capitale capitale = capitaleRepository.findByUserId(user.getId())
-                .orElseGet(() -> {
-                    Capitale nuovo = new Capitale();
-                    nuovo.setUser(user);
-                    nuovo.setContoBancario(BigDecimal.ZERO);
-                    nuovo.setLiquidita(BigDecimal.ZERO);
-                    nuovo.setAltriFondi(BigDecimal.ZERO);
-                    nuovo.setDataAggiornamento(LocalDate.now());
-                    return capitaleRepository.save(nuovo);
-                });
+    public MovimentoResponse creaMovimentoDaTelegram(User user, MovimentoRequest request) {
+        try {
+            Capitale capitale = capitaleRepository.findByUserId(user.getId())
+                    .orElseGet(() -> {
+                        Capitale nuovo = new Capitale();
+                        nuovo.setUser(user);
+                        nuovo.setContoBancario(BigDecimal.ZERO);
+                        nuovo.setLiquidita(BigDecimal.ZERO);
+                        nuovo.setAltriFondi(BigDecimal.ZERO);
+                        nuovo.setDataAggiornamento(LocalDate.now());
+                        return capitaleRepository.save(nuovo);
+                    });
 
-        Movimento movimento = Movimento.builder()
-                .importo(importo)
-                .tipo(TipoMovimento.USCITA)
-                .categoria(null)
-                .descrizione(descrizione)
-                .data(data)
-                .fonte("CONTANTI")
-                .capitale(capitale)
-                .build();
+            BigDecimal importo = request.getImporto();
+            String fonte = request.getFonte();
 
-        capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
-        capitale.setDataAggiornamento(LocalDate.now());
+            Movimento movimento = Movimento.builder()
+                    .importo(importo)
+                    .tipo(request.getTipo())
+                    .categoria(request.getCategoria())
+                    .descrizione(request.getDescrizione())
+                    .data(request.getData())
+                    .fonte(fonte.toUpperCase())
+                    .capitale(capitale)
+                    .build();
 
-        capitaleRepository.save(capitale);
-        movimentoRepository.save(movimento);
+            switch (request.getTipo()) {
+                case ENTRATA -> {
+                    switch (fonte.toUpperCase()) {
+                        case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().add(importo));
+                        case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().add(importo));
+                        case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().add(importo));
+                        default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                    }
+                }
+                case USCITA -> {
+                    switch (fonte.toUpperCase()) {
+                        case "BANCA" -> capitale.setContoBancario(capitale.getContoBancario().subtract(importo));
+                        case "CONTANTI" -> capitale.setLiquidita(capitale.getLiquidita().subtract(importo));
+                        case "ALTRI" -> capitale.setAltriFondi(capitale.getAltriFondi().subtract(importo));
+                        default -> throw new IllegalArgumentException("Fonte non valida: " + fonte);
+                    }
+                }
+                default -> throw new IllegalArgumentException("Tipo di movimento non valido: " + request.getTipo());
+            }
 
-        log.info("🤖 Movimento Telegram salvato per utente {}: {}€ - {}", user.getEmail(), importo, descrizione);
+            capitaleRepository.save(capitale);
+            Movimento saved = movimentoRepository.save(movimento);
+
+            log.info("✅ Movimento {} [{}] salvato per capitale {}", saved.getTipo(), saved.getFonte(), capitale.getId());
+
+            return new MovimentoResponse(saved);
+        } catch (Exception e) {
+            log.error("💥 Errore nella creazione del movimento da Telegram", e);
+            throw new RuntimeException("Errore nella creazione del movimento da Telegram", e);
+        }
     }
 
 
