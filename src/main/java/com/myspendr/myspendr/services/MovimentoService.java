@@ -288,5 +288,54 @@ public class MovimentoService {
         }
     }
 
+    public BigDecimal getTotaleEntrateUltimoMese(String authHeader) {
+        try {
+            Capitale capitale = getCapitaleFromToken(authHeader);
+            LocalDate oggi = LocalDate.now();
+            LocalDate meseScorso = oggi.minusMonths(1);
+
+            BigDecimal totale = movimentoRepository.findByCapitaleId(capitale.getId()).stream()
+                    .filter(m -> m.getTipo() == TipoMovimento.ENTRATA)
+                    .filter(m -> !m.getData().isBefore(meseScorso) && !m.getData().isAfter(oggi))
+                    .map(Movimento::getImporto)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            log.info("📈 Totale ENTRATE ultimo mese per capitale {}: {}€", capitale.getId(), totale);
+            return totale;
+
+        } catch (CapitaleNotFoundException e) {
+            log.info("ℹ️ Capitale non presente: ritorno 0€ come totale entrate ultimo mese.");
+            return BigDecimal.ZERO;
+        } catch (Exception e) {
+            log.error("❌ Errore nel calcolo totale entrate ultimo mese", e);
+            throw new RuntimeException("Errore nel calcolo delle entrate ultimo mese", e);
+        }
+    }
+
+    public BigDecimal getTotaleUsciteUltimoMese(String authHeader) {
+        try {
+            Capitale capitale = getCapitaleFromToken(authHeader);
+            LocalDate oggi = LocalDate.now();
+            LocalDate meseScorso = oggi.minusMonths(1);
+
+            BigDecimal totale = movimentoRepository.findByCapitaleId(capitale.getId()).stream()
+                    .filter(m -> m.getTipo() == TipoMovimento.USCITA)
+                    .filter(m -> !m.getData().isBefore(meseScorso) && !m.getData().isAfter(oggi))
+                    .map(Movimento::getImporto)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            log.info("📉 Totale USCITE ultimo mese per capitale {}: {}€", capitale.getId(), totale);
+            return totale;
+
+        } catch (CapitaleNotFoundException e) {
+            log.info("ℹ️ Capitale non presente: ritorno 0€ come totale uscite ultimo mese.");
+            return BigDecimal.ZERO;
+        } catch (Exception e) {
+            log.error("❌ Errore nel calcolo totale uscite ultimo mese", e);
+            throw new RuntimeException("Errore nel calcolo delle uscite ultimo mese", e);
+        }
+    }
+
+
 
 }

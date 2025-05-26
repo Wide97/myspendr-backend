@@ -107,4 +107,31 @@ public class MovimentoController {
             return ResponseEntity.internalServerError().body("Errore durante l'eliminazione del movimento");
         }
     }
+
+    // 📈 Totale ENTRATE dell'ultimo mese
+    @GetMapping("/totale/entrate/ultimo-mese")
+    public ResponseEntity<?> getTotaleEntrateUltimoMese(@RequestHeader("Authorization") String token) {
+        try {
+            BigDecimal totale = movimentoService.getTotaleEntrateUltimoMese(token);
+            log.info("💰 Totale entrate ultimo mese: {}€", totale);
+            return ResponseEntity.ok(totale);
+        } catch (Exception e) {
+            log.error("❌ Errore nel calcolo totale entrate ultimo mese", e);
+            return ResponseEntity.internalServerError().body("Errore nel calcolo delle entrate dell'ultimo mese");
+        }
+    }
+
+    // 📉 Totale USCITE dell'ultimo mese
+    @GetMapping("/totale/uscite/ultimo-mese")
+    public ResponseEntity<?> getTotaleUsciteUltimoMese(@RequestHeader("Authorization") String token) {
+        try {
+            BigDecimal totale = movimentoService.getTotaleUsciteUltimoMese(token);
+            log.info("💸 Totale uscite ultimo mese: {}€", totale);
+            return ResponseEntity.ok(totale);
+        } catch (Exception e) {
+            log.error("❌ Errore nel calcolo totale uscite ultimo mese", e);
+            return ResponseEntity.internalServerError().body("Errore nel calcolo delle uscite dell'ultimo mese");
+        }
+    }
+
 }
