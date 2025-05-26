@@ -54,4 +54,3 @@ public class TelegramUserService {
         fonteTemporanea.remove(telegramId);
     }
 }
-

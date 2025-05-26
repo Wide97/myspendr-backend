@@ -1,10 +1,9 @@
 package com.myspendr.myspendr.services;
 
 import com.myspendr.myspendr.dto.MovimentoRequest;
-import com.myspendr.myspendr.model.CategoriaMovimento;
-import com.myspendr.myspendr.model.TelegramUser;
-import com.myspendr.myspendr.model.TipoMovimento;
-import com.myspendr.myspendr.model.User;
+import com.myspendr.myspendr.model.*;
+import com.myspendr.myspendr.repositories.CapitaleRepository;
+import com.myspendr.myspendr.repositories.MovimentoRepository;
 import com.myspendr.myspendr.repositories.TelegramUserRepository;
 import com.myspendr.myspendr.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,10 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -34,7 +30,9 @@ public class TelegramBotService {
     private final TelegramUserRepository telegramUserRepository;
     private final MovimentoService movimentoService;
     private final UserRepository userRepository;
-    private final TelegramUserService telegramUserService; // ✅ nuovo servizio
+    private final TelegramUserService telegramUserService;
+    private final CapitaleRepository capitaleRepository;
+    private final MovimentoRepository movimentoRepository;
 
     @Value("${telegram.bot.token}")
     private String botToken;
@@ -178,7 +176,6 @@ public class TelegramBotService {
     }
 
 
-
     public void mostraBottoniCategoria(Long telegramId) {
         List<List<InlineKeyboardButton>> righe = new ArrayList<>();
 
@@ -265,6 +262,103 @@ public class TelegramBotService {
         }
     }
 
+    public void handleUltimiCommand(Long telegramId) {
+        TelegramUser telegramUser = telegramUserService.findByTelegramId(telegramId);
+        if (telegramUser == null) {
+            inviaMessaggioTelegram(telegramId, "❗ Devi prima collegare il tuo account.");
+            return;
+        }
+
+        UUID userId = telegramUser.getUser().getId();
+        Capitale capitale = capitaleRepository.findByUserId(userId).orElse(null);
+        if (capitale == null) {
+            inviaMessaggioTelegram(telegramId, "⚠️ Nessun capitale trovato.");
+            return;
+        }
+
+        List<Movimento> ultimi = movimentoRepository.findByCapitaleId(capitale.getId()).stream()
+                .sorted(Comparator.comparing(Movimento::getData).reversed())
+                .limit(5)
+                .toList();
+
+        StringBuilder sb = new StringBuilder("📄 Ultimi 5 movimenti:\n\n");
+        for (Movimento mov : ultimi) {
+            sb.append("• ").append(mov.getData()).append(" - ")
+                    .append(mov.getCategoria()).append(": ")
+                    .append(mov.getImporto()).append("€\n");
+        }
+
+        inviaMessaggioTelegram(telegramId, sb.toString());
+    }
+
+    public void handleRiepilogoCommand(Long telegramId) {
+        TelegramUser telegramUser = telegramUserService.findByTelegramId(telegramId);
+        if (telegramUser == null) {
+            inviaMessaggioTelegram(telegramId, "❗ Devi prima collegare il tuo account MySpendr.");
+            return;
+        }
+
+        Capitale capitale = capitaleRepository.findByUserId(telegramUser.getUser().getId())
+                .orElse(null);
+
+        if (capitale == null) {
+            inviaMessaggioTelegram(telegramId, "📭 Nessun capitale trovato. Usa l’app per crearlo.");
+            return;
+        }
+
+        String risposta = """
+                💼 *Il tuo Capitale Attuale*:
+                • Banca: €%.2f
+                • Contanti: €%.2f
+                • Altri fondi: €%.2f
+                • Totale: €%.2f
+                """.formatted(
+                capitale.getContoBancario(),
+                capitale.getLiquidita(),
+                capitale.getAltriFondi(),
+                capitale.getTotale()
+        );
+
+        inviaMessaggioTelegram(telegramId, risposta);
+    }
+
+    public void handleHelpCommand(Long chatId) {
+        String messaggio = """
+                📖 *Guida MySpendr Bot*:
+                
+                ▪️ /start `<token>` - Collega il tuo account MySpendr
+                ▪️ /spesa - Avvia la registrazione guidata di un movimento
+                ▪️ /ultimi - Mostra gli ultimi 5 movimenti
+                ▪️ /riepilogo - Visualizza il tuo capitale attuale
+                ▪️ /help - Mostra questo messaggio di aiuto
+                
+                💡 Quando crei una spesa:
+                1. Scegli *tipo* (entrata o uscita)
+                2. Scegli *categoria*
+                3. Scegli *fonte* (contanti, banca, altri)
+                4. Invia l'importo e la descrizione (es. `12.50 sushi`)
+                
+                📅 Puoi anche aggiungere la data: `12.50 sushi 2025-05-26`
+                
+                Buon tracciamento con MySpendr 💰
+                """;
+
+        String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
+        RestTemplate restTemplate = new RestTemplate();
+
+        Map<String, Object> request = Map.of(
+                "chat_id", chatId,
+                "text", messaggio,
+                "parse_mode", "Markdown"
+        );
+
+        try {
+            restTemplate.postForEntity(url, request, String.class);
+            log.info("📘 Messaggio /help inviato a {}", chatId);
+        } catch (Exception e) {
+            log.error("❌ Errore durante l'invio del messaggio di help", e);
+        }
+    }
 
 
 }
