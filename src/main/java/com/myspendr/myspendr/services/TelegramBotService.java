@@ -2,10 +2,7 @@ package com.myspendr.myspendr.services;
 
 import com.myspendr.myspendr.dto.MovimentoRequest;
 import com.myspendr.myspendr.model.*;
-import com.myspendr.myspendr.repositories.CapitaleRepository;
-import com.myspendr.myspendr.repositories.MovimentoRepository;
-import com.myspendr.myspendr.repositories.TelegramUserRepository;
-import com.myspendr.myspendr.repositories.UserRepository;
+import com.myspendr.myspendr.repositories.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +30,7 @@ public class TelegramBotService {
     private final TelegramUserService telegramUserService;
     private final CapitaleRepository capitaleRepository;
     private final MovimentoRepository movimentoRepository;
+    private final BudgetMensileRepository budgetRepo;
 
     @Value("${telegram.bot.token}")
     private String botToken;
@@ -216,6 +214,7 @@ public class TelegramBotService {
                                      TipoMovimento tipo,
                                      CategoriaMovimento categoria,
                                      String fonte) {
+
         MovimentoRequest request = new MovimentoRequest();
         request.setImporto(importo);
         request.setDescrizione(descrizione);
@@ -225,7 +224,46 @@ public class TelegramBotService {
         request.setFonte(fonte);
 
         movimentoService.creaMovimentoDaTelegram(user, request);
+
+        // 🔔 Notifica se budget superato
+        if (tipo == TipoMovimento.USCITA) {
+            Long telegramId = telegramUserRepository.findByUser(user)
+                    .map(TelegramUser::getTelegramId)
+                    .orElse(null);
+            if (telegramId != null) {
+                controllaEBudgetSuperato(user, categoria, data.getMonthValue(), data.getYear(), telegramId);
+            }
+        }
     }
+
+
+    private void controllaEBudgetSuperato(User user, CategoriaMovimento categoria, int mese, int anno, Long telegramId) {
+        try {
+            BudgetMensile budget = budgetRepo.findByUserAndCategoriaAndMeseAndAnno(user, categoria, mese, anno).orElse(null);
+
+            if (budget != null) {
+                BigDecimal limite = budget.getLimite();
+                BigDecimal speso = movimentoRepository.findByCapitale_UserAndCategoriaAndTipoAndDataBetween(
+                                user, categoria, TipoMovimento.USCITA,
+                                LocalDate.of(anno, mese, 1),
+                                LocalDate.of(anno, mese, 1).withDayOfMonth(LocalDate.of(anno, mese, 1).lengthOfMonth())
+                        ).stream()
+                        .map(Movimento::getImporto)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                if (speso.compareTo(limite) > 0) {
+                    BigDecimal sforamento = speso.subtract(limite);
+                    String messaggio = "⚠️ *Budget Superato!*\nHai speso *" + speso + "€* su un limite di *" + limite + "€* per la categoria *" + categoria + "*.\nSforamento: *" + sforamento + "€*";
+
+                    inviaMessaggioTelegram(telegramId, messaggio);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Errore nel controllo del budget superato", e);
+        }
+    }
+
 
 
     public void handleTextMessage(Message message) {

@@ -6,6 +6,7 @@ import com.myspendr.myspendr.exceptions.UserNotFoundException;
 import com.myspendr.myspendr.model.*;
 import com.myspendr.myspendr.repositories.BudgetMensileRepository;
 import com.myspendr.myspendr.repositories.MovimentoRepository;
+import com.myspendr.myspendr.repositories.TelegramUserRepository;
 import com.myspendr.myspendr.repositories.UserRepository;
 import com.myspendr.myspendr.security.JwtUtils;
 import jakarta.transaction.Transactional;
@@ -26,6 +27,8 @@ public class BudgetService {
     private final MovimentoRepository movimentoRepo;
     private final UserRepository userRepo;
     private final JwtUtils jwtUtils;
+    private final TelegramUserRepository telegramUserRepository;
+    private final TelegramBotService telegramBotService;
 
     private User getUserFromToken(String authHeader) {
         String token = authHeader.replace("Bearer ", "").trim();
@@ -77,6 +80,18 @@ public class BudgetService {
             BigDecimal residuo = limite.subtract(speso);
             boolean superato = speso.compareTo(limite) > 0;
 
+            // 🔔 Se superato → invia notifica Telegram
+            if (superato) {
+                telegramUserRepository.findByUser(user).ifPresent(telegramUser -> {
+                    String messaggio = """
+                        ⚠️ Hai superato il budget per *%s* nel mese %d/%d.
+                        Speso: *€%.2f* / Limite: *€%.2f*
+                        """.formatted(categoria.name(), mese, anno, speso, limite);
+
+                    telegramBotService.inviaMessaggioTelegram(telegramUser.getTelegramId(), messaggio);
+                });
+            }
+
             BudgetResponse response = BudgetResponse.builder()
                     .categoria(categoria)
                     .limite(limite)
@@ -95,6 +110,7 @@ public class BudgetService {
             throw new RuntimeException("Errore nel recupero del budget", e);
         }
     }
+
 
     private BigDecimal getSpesaTotale(User user, CategoriaMovimento categoria, int mese, int anno) {
         try {
