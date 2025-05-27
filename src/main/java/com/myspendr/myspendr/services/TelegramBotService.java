@@ -5,6 +5,7 @@ import com.myspendr.myspendr.model.*;
 import com.myspendr.myspendr.repositories.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+
+
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,12 +28,16 @@ import java.util.*;
 public class TelegramBotService {
 
     private final TelegramUserRepository telegramUserRepository;
-    private final MovimentoService movimentoService;
     private final UserRepository userRepository;
     private final TelegramUserService telegramUserService;
     private final CapitaleRepository capitaleRepository;
     private final MovimentoRepository movimentoRepository;
     private final BudgetMensileRepository budgetRepo;
+    private final ApplicationContext context;
+
+    private MovimentoService movimentoService() {
+        return context.getBean(MovimentoService.class);
+    }
 
     @Value("${telegram.bot.token}")
     private String botToken;
