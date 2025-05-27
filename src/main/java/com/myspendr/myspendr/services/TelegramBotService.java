@@ -230,7 +230,7 @@ public class TelegramBotService {
         request.setCategoria(categoria);
         request.setFonte(fonte);
 
-        movimentoService.creaMovimentoDaTelegram(user, request);
+        movimentoService().creaMovimentoDaTelegram(user, request);
 
         // 🔔 Notifica se budget superato
         if (tipo == TipoMovimento.USCITA) {
