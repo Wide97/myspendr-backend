@@ -28,7 +28,8 @@ public class BudgetService {
     private final UserRepository userRepo;
     private final JwtUtils jwtUtils;
     private final TelegramUserRepository telegramUserRepository;
-    private final TelegramBotService telegramBotService;
+    private final TelegramNotificationService telegramNotificationService;
+
 
     private User getUserFromToken(String authHeader) {
         String token = authHeader.replace("Bearer ", "").trim();
@@ -88,7 +89,9 @@ public class BudgetService {
                         Speso: *€%.2f* / Limite: *€%.2f*
                         """.formatted(categoria.name(), mese, anno, speso, limite);
 
-                    telegramBotService.inviaMessaggioTelegram(telegramUser.getTelegramId(), messaggio);
+                    telegramNotificationService.inviaAvvisoBudgetSuperato(user, categoria, mese, anno, speso, limite);
+
+
                 });
             }
 
@@ -187,7 +190,9 @@ public class BudgetService {
                         BigDecimal sforamento = speso.subtract(limite);
                         String messaggio = "⚠️ *Budget Superato!*\nHai speso *" + speso + "€* su un limite di *" + limite + "€* per la categoria *" + categoria + "*.\nSforamento: *" + sforamento + "€*";
 
-                        telegramBotService.inviaMessaggioTelegram(telegramUser.getTelegramId(), messaggio);
+                        telegramNotificationService.inviaAvvisoBudgetSuperato(user, categoria, mese, anno, speso, limite);
+
+
                     });
                 }
             }
