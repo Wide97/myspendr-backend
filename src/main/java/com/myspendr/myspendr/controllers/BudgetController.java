@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/budget")
 @RequiredArgsConstructor
@@ -34,4 +36,14 @@ public class BudgetController {
         BudgetResponse response = budgetService.getBudget(authHeader, categoria, mese, anno);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<BudgetResponse>> getAllBudgets(@RequestHeader("Authorization") String authHeader,
+                                                              @RequestParam int mese,
+                                                              @RequestParam int anno) {
+        log.info("📥 Richiesta di tutti i budget per il mese {}/{}", mese, anno);
+        List<BudgetResponse> response = budgetService.getAllBudgets(authHeader, mese, anno);
+        return ResponseEntity.ok(response);
+    }
+
 }

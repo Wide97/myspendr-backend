@@ -116,4 +116,42 @@ public class BudgetService {
             return BigDecimal.ZERO;
         }
     }
+
+    public List<BudgetResponse> getAllBudgets(String authHeader, int mese, int anno) {
+        try {
+            User user = getUserFromToken(authHeader);
+            log.info("📊 Recupero TUTTI i budget per utente {}, mese {}/{}", user.getEmail(), mese, anno);
+
+            List<BudgetMensile> budgets = budgetRepo.findByUserAndMeseAndAnno(user, mese, anno);
+
+            return budgets.stream()
+                    .map(budget -> {
+                        try {
+                            BigDecimal speso = getSpesaTotale(user, budget.getCategoria(), mese, anno);
+                            BigDecimal residuo = budget.getLimite().subtract(speso);
+                            boolean superato = speso.compareTo(budget.getLimite()) > 0;
+
+                            return BudgetResponse.builder()
+                                    .categoria(budget.getCategoria())
+                                    .limite(budget.getLimite())
+                                    .speso(speso)
+                                    .residuo(residuo)
+                                    .superato(superato)
+                                    .mese(mese)
+                                    .anno(anno)
+                                    .build();
+                        } catch (Exception e) {
+                            log.error("❌ Errore nella categoria " + budget.getCategoria(), e);
+                            return null;
+                        }
+                    })
+                    .filter(b -> b != null)
+                    .toList();
+
+        } catch (Exception e) {
+            log.error("❌ Errore nel recupero di tutti i budget", e);
+            throw new RuntimeException("Errore nel recupero di tutti i budget", e);
+        }
+    }
+
 }
