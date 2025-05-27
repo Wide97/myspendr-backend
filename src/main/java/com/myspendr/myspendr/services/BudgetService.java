@@ -101,7 +101,7 @@ public class BudgetService {
             LocalDate inizio = LocalDate.of(anno, mese, 1);
             LocalDate fine = inizio.withDayOfMonth(inizio.lengthOfMonth());
 
-            List<Movimento> spese = movimentoRepo.findByUserAndCategoriaAndTipoAndDataBetween(
+            List<Movimento> spese = movimentoRepo.findByCapitale_UserAndCategoriaAndTipoAndDataBetween(
                     user, categoria, TipoMovimento.USCITA, inizio, fine
             );
 
