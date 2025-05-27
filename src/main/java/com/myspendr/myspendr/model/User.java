@@ -8,6 +8,8 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -17,7 +19,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@JsonIgnoreProperties({"capitale"})
+@JsonIgnoreProperties({"capitale", "budgetMensili"})
 public class User {
 
     @Id
@@ -58,5 +60,9 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Capitale capitale;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<BudgetMensile> budgetMensili = new ArrayList<>();
+
 
 }
