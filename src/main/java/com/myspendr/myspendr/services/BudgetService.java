@@ -81,19 +81,6 @@ public class BudgetService {
             BigDecimal residuo = limite.subtract(speso);
             boolean superato = speso.compareTo(limite) > 0;
 
-            // 🔔 Se superato → invia notifica Telegram
-            if (superato) {
-                telegramUserRepository.findByUser(user).ifPresent(telegramUser -> {
-                    String messaggio = """
-                        ⚠️ Hai superato il budget per *%s* nel mese %d/%d.
-                        Speso: *€%.2f* / Limite: *€%.2f*
-                        """.formatted(categoria.name(), mese, anno, speso, limite);
-
-                    telegramNotificationService.inviaAvvisoBudgetSuperato(user, categoria, mese, anno, speso, limite);
-
-
-                });
-            }
 
             BudgetResponse response = BudgetResponse.builder()
                     .categoria(categoria)
