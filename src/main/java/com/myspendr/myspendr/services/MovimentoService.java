@@ -28,15 +28,18 @@ public class MovimentoService {
     private final MovimentoRepository movimentoRepository;
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
+    private final BudgetService budgetService;
 
     public MovimentoService(CapitaleRepository capitaleRepository,
                             MovimentoRepository movimentoRepository,
                             JwtUtils jwtUtils,
-                            UserRepository userRepository) {
+                            UserRepository userRepository,
+                            BudgetService budgetService) {
         this.capitaleRepository = capitaleRepository;
         this.movimentoRepository = movimentoRepository;
         this.jwtUtils = jwtUtils;
         this.userRepository = userRepository;
+        this.budgetService = budgetService;
     }
 
     private Capitale getCapitaleFromToken(String authHeader) {
@@ -109,6 +112,12 @@ public class MovimentoService {
             capitaleRepository.save(capitale);
             Movimento saved = movimentoRepository.save(movimento);
             log.info("✅ Movimento {} [{}] salvato per capitale {}", saved.getTipo(), saved.getFonte(), capitale.getId());
+
+            // 🔔 Controllo budget superato per USCITE
+            if (request.getTipo() == TipoMovimento.USCITA) {
+                budgetService.controllaSuperamentoEBotta(user, request.getCategoria(), request.getData());
+            }
+
 
             return new MovimentoResponse(saved);
 

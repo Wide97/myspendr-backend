@@ -170,4 +170,32 @@ public class BudgetService {
         }
     }
 
+    public void controllaSuperamentoEBotta(User user, CategoriaMovimento categoria, LocalDate data) {
+        try {
+            int mese = data.getMonthValue();
+            int anno = data.getYear();
+
+            BudgetMensile budget = budgetRepo.findByUserAndCategoriaAndMeseAndAnno(user, categoria, mese, anno)
+                    .orElse(null);
+
+            if (budget != null) {
+                BigDecimal limite = budget.getLimite();
+                BigDecimal speso = getSpesaTotale(user, categoria, mese, anno);
+
+                if (speso.compareTo(limite) > 0) {
+                    telegramUserRepository.findByUser(user).ifPresent(telegramUser -> {
+                        BigDecimal sforamento = speso.subtract(limite);
+                        String messaggio = "⚠️ *Budget Superato!*\nHai speso *" + speso + "€* su un limite di *" + limite + "€* per la categoria *" + categoria + "*.\nSforamento: *" + sforamento + "€*";
+
+                        telegramBotService.inviaMessaggioTelegram(telegramUser.getTelegramId(), messaggio);
+                    });
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("❌ Errore nel controllo budget da app", e);
+        }
+    }
+
+
 }
