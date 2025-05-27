@@ -299,8 +299,8 @@ public class TelegramBotService {
             }
 
             creaSpesaViaTelegram(telegramUser.getUser(), importo, descrizione, data, tipo, categoria, fonte);
-            telegramUserService.clearSession(telegramId);
             inviaMessaggioTelegram(telegramId, "✅ Movimento salvato correttamente!");
+            telegramUserService.clearSession(telegramId);
 
         } catch (Exception e) {
             inviaMessaggioTelegram(telegramId, "❌ Formato errato. Usa: `12.50 sushi [2025-05-25]`");
