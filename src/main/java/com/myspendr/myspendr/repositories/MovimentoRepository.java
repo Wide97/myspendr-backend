@@ -11,9 +11,12 @@ import java.util.List;
 
 public interface MovimentoRepository extends JpaRepository<Movimento, Long> {
     List<Movimento> findByCapitaleId(Long capitaleId);
+
     void deleteByCapitaleId(Long capitaleId);
 
     List<Movimento> findByCapitale_UserAndCategoriaAndTipoAndDataBetween(User user,
                                                                          CategoriaMovimento categoria, TipoMovimento tipo, LocalDate inizio, LocalDate fine);
+
+    List<Movimento> findByCapitale_UserAndDataBetweenOrderByDataAsc(User user, LocalDate inizio, LocalDate fine);
 
 }
